@@ -9,10 +9,6 @@ const { compressProfileImage, bufferToBase64 } = require('../utils/imageUtils');
 
 const router = express.Router();
 
-// Настройка multer для загрузки аватарки в файловую систему
-const path = require('path');
-const fs = require('fs');
-
 // Создаем папку uploads/avatars если её нет
 const avatarsDir = path.join(__dirname, '../uploads/avatars');
 if (!fs.existsSync(avatarsDir)) {
