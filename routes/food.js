@@ -1,14 +1,11 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const authMiddleware = require('../middleware/auth');
 const { checkPhotoLimit } = require('../middleware/usage-limits');
 const { checkFileSizeLimit, compressImage, compressBase64Image, checkBase64SizeLimit } = require('../middleware/image-compression');
-const User = require('../models/User');
-const Food = require('../models/Food');
+const Database = require('../utils/database');
 const { analyzeFood } = require('../services/ai-service');
-const { compressFoodImage, bufferToBase64 } = require('../utils/imageUtils');
 
 const router = express.Router();
 
@@ -64,71 +61,38 @@ router.post('/analyze', authMiddleware, upload.single('image'), checkFileSizeLim
     }
     
     // Получаем пользователя для персонализации
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Пользователь не найден'
-      });
-    }
+    const user = Database.getUserById(req.userId);
     
     // Анализируем изображение через AI
     const analysis = await analyzeFood(req.file.path, user);
     
     // Определяем тип приема пищи по времени
     const hour = new Date().getHours();
-    let mealType = 'snack';
-    if (hour >= 6 && hour < 11) mealType = 'breakfast';
-    else if (hour >= 11 && hour < 16) mealType = 'lunch';
-    else if (hour >= 16 && hour < 22) mealType = 'dinner';
+    let mealType = 'Перекус';
+    if (hour >= 6 && hour < 11) mealType = 'Завтрак';
+    else if (hour >= 11 && hour < 16) mealType = 'Обед';
+    else if (hour >= 16 && hour < 22) mealType = 'Ужин';
     
-    // Сжимаем изображение для хранения в MongoDB
-    const compressedImage = await compressFoodImage(req.file.path);
-    
-    // Создаем новую запись о еде
-    const newFood = new Food({
-      userId: user._id,
+    // Сохраняем в базу - всегда проверяем что name не пустой
+    const foodData = {
+      userId: req.userId,
       name: (analysis.name && analysis.name.trim() !== '') ? analysis.name : 'Блюдо',
+      imageUrl: `/uploads/${req.file.filename}`,
       calories: analysis.calories || 0,
       macros: analysis.macros || { protein: 0, fat: 0, carbs: 0 },
-      meal: mealType,
-      image: compressedImage,
-      date: new Date(),
-      aiConfidence: analysis.confidence || 0.8,
-      portion: {
-        size: 1,
-        unit: 'порция'
-      }
-    });
+      mealType
+    };
     
-    await newFood.save();
+    console.log('Saving food:', foodData);
     
-    // Удаляем временный файл
-    if (fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    
-    // Подготавливаем ответ с base64 изображением
-    const responseFood = newFood.toObject();
-    if (responseFood.image && responseFood.image.data) {
-      responseFood.imageBase64 = bufferToBase64(responseFood.image.data, responseFood.image.contentType);
-      delete responseFood.image; // Удаляем бинарные данные из ответа
-    }
-    
-    console.log('📸 Сохранено блюдо в MongoDB:', responseFood.name);
+    const newFood = Database.createFood(foodData);
     
     res.json({
       success: true,
-      food: responseFood
+      food: newFood
     });
   } catch (error) {
     console.error('Food analysis error:', error);
-    
-    // Удаляем временный файл в случае ошибки
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
-    }
-    
     res.status(500).json({
       success: false,
       message: error.message || 'Ошибка анализа изображения'
@@ -137,39 +101,16 @@ router.post('/analyze', authMiddleware, upload.single('image'), checkFileSizeLim
 });
 
 // История еды
-router.get('/history', authMiddleware, async (req, res) => {
+router.get('/history', authMiddleware, (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const skip = (page - 1) * limit;
+    const foods = Database.getFoods(req.userId);
     
-    const foods = await Food.find({ userId: req.userId })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .skip(skip);
-    
-    // Подготавливаем ответ с base64 изображениями
-    const foodsWithImages = foods.map(food => {
-      const foodObj = food.toObject();
-      if (foodObj.image && foodObj.image.data) {
-        foodObj.imageBase64 = bufferToBase64(foodObj.image.data, foodObj.image.contentType);
-        delete foodObj.image;
-      }
-      return foodObj;
-    });
-    
-    const totalCount = await Food.countDocuments({ userId: req.userId });
+    // Сортируем по дате (новые первые)
+    foods.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     
     res.json({
       success: true,
-      foods: foodsWithImages,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(totalCount / limit),
-        totalItems: totalCount,
-        hasNext: page * limit < totalCount,
-        hasPrev: page > 1
-      }
+      foods
     });
   } catch (error) {
     console.error('Get food history error:', error);
@@ -181,15 +122,9 @@ router.get('/history', authMiddleware, async (req, res) => {
 });
 
 // Дневная сводка
-router.get('/daily-summary', authMiddleware, async (req, res) => {
+router.get('/daily-summary', authMiddleware, (req, res) => {
   try {
-    const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: 'Пользователь не найден'
-      });
-    }
+    const user = Database.getUserById(req.userId);
     
     // Получаем дату из query параметра или используем сегодня
     let targetDate = new Date();
@@ -197,55 +132,32 @@ router.get('/daily-summary', authMiddleware, async (req, res) => {
       targetDate = new Date(req.query.date);
     }
     
-    const dayFoods = await Food.getUserFoodsByDate(req.userId, targetDate);
+    const dayFoods = Database.getFoodsByDate(req.userId, targetDate);
     
-    // Подсчитываем калории и макросы с учетом порций
+    // Подсчитываем калории и макросы
     let totalCalories = 0;
     let consumedMacros = { carbs: 0, protein: 0, fat: 0 };
     
-    const foodsWithImages = dayFoods.map(food => {
-      const portionSize = food.portion?.size || 1;
-      totalCalories += (food.calories || 0) * portionSize;
-      
+    dayFoods.forEach(food => {
+      totalCalories += food.calories || 0;
       if (food.macros) {
-        consumedMacros.carbs += (food.macros.carbs || 0) * portionSize;
-        consumedMacros.protein += (food.macros.protein || 0) * portionSize;
-        consumedMacros.fat += (food.macros.fat || 0) * portionSize;
+        consumedMacros.carbs += food.macros.carbs || 0;
+        consumedMacros.protein += food.macros.protein || 0;
+        consumedMacros.fat += food.macros.fat || 0;
       }
-      
-      // Подготавливаем изображение для ответа
-      const foodObj = food.toObject();
-      if (foodObj.image && foodObj.image.data) {
-        foodObj.imageBase64 = bufferToBase64(foodObj.image.data, foodObj.image.contentType);
-        delete foodObj.image;
-      }
-      return foodObj;
     });
     
-    const remainingCalories = user.dailyCalorieGoal - totalCalories;
-    
-    // Группируем по типам приема пищи
-    const mealGroups = {
-      breakfast: foodsWithImages.filter(f => f.meal === 'breakfast'),
-      lunch: foodsWithImages.filter(f => f.meal === 'lunch'),
-      dinner: foodsWithImages.filter(f => f.meal === 'dinner'),
-      snack: foodsWithImages.filter(f => f.meal === 'snack')
-    };
+    const remainingCalories = user.dailyCalories - totalCalories;
     
     res.json({
       success: true,
       data: {
-        totalCalories: Math.round(totalCalories),
-        targetCalories: user.dailyCalorieGoal,
-        remainingCalories: Math.round(remainingCalories),
-        consumedMacros: {
-          carbs: Math.round(consumedMacros.carbs),
-          protein: Math.round(consumedMacros.protein),
-          fat: Math.round(consumedMacros.fat)
-        },
-        foods: foodsWithImages,
-        mealGroups,
-        date: targetDate.toISOString().split('T')[0]
+        totalCalories,
+        targetCalories: user.dailyCalories,
+        remainingCalories,
+        consumedMacros,
+        targetMacros: user.macros,
+        foods: dayFoods
       }
     });
   } catch (error) {

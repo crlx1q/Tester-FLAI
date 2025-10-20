@@ -7,197 +7,85 @@ const recipeSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  title: {
+  name: {
     type: String,
-    required: true,
-    trim: true,
-    maxlength: 200
+    required: true
   },
-  description: {
+  image: {
+    type: Buffer, // Храним изображение как Buffer
+    default: null
+  },
+  imageContentType: {
     type: String,
-    trim: true,
-    maxlength: 1000
+    default: null
   },
-  ingredients: [{
-    name: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    amount: {
-      type: String,
-      required: true,
-      trim: true
-    },
-    unit: {
-      type: String,
-      trim: true,
-      default: ''
-    }
-  }],
-  instructions: [{
-    step: {
-      type: Number,
-      required: true
-    },
-    description: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 500
-    }
-  }],
-  nutrition: {
-    calories: {
-      type: Number,
-      min: 0
-    },
-    protein: {
-      type: Number,
-      min: 0
-    },
-    fat: {
-      type: Number,
-      min: 0
-    },
-    carbs: {
-      type: Number,
-      min: 0
-    },
-    servings: {
-      type: Number,
-      default: 1,
-      min: 1
-    }
+  calories: {
+    type: Number,
+    default: 0
   },
-  images: [{
-    data: Buffer,
-    contentType: String,
-    filename: String,
-    compressedSize: Number
-  }],
-  cookingTime: {
-    prep: {
-      type: Number, // в минутах
-      min: 0
-    },
-    cook: {
-      type: Number, // в минутах  
-      min: 0
-    },
-    total: {
-      type: Number, // в минутах
-      min: 0
-    }
+  macros: {
+    protein: { type: Number, default: 0 },
+    fat: { type: Number, default: 0 },
+    carbs: { type: Number, default: 0 }
+  },
+  protein: { type: Number, default: 0 },
+  fat: { type: Number, default: 0 },
+  carbs: { type: Number, default: 0 },
+  prepTime: {
+    type: Number,
+    default: 30
   },
   difficulty: {
     type: String,
-    enum: ['easy', 'medium', 'hard'],
-    default: 'medium'
+    enum: ['Легко', 'Средне', 'Сложно'],
+    default: 'Средне'
   },
-  category: {
-    type: String,
-    enum: ['breakfast', 'lunch', 'dinner', 'snack', 'dessert', 'appetizer', 'soup', 'salad'],
-    required: true
+  servings: {
+    type: Number,
+    default: 1
   },
-  cuisine: {
+  cookTime: {
     type: String,
-    trim: true,
-    default: 'Международная'
+    default: '00:30'
   },
-  tags: [{
+  goal: {
     type: String,
-    trim: true
+    enum: ['lose_weight', 'gain_muscle', 'maintain_weight'],
+    default: null
+  },
+  allergies: [{
+    type: String
   }],
-  isPublic: {
-    type: Boolean,
-    default: false
-  },
+  ingredients: [{
+    name: String,
+    amount: String,
+    unit: String,
+    calories: Number
+  }],
+  instructions: [{
+    type: String
+  }],
   isFavorite: {
     type: Boolean,
     default: false
-  },
-  rating: {
-    value: {
-      type: Number,
-      min: 1,
-      max: 5
-    },
-    notes: {
-      type: String,
-      trim: true,
-      maxlength: 300
-    }
-  },
-  source: {
-    type: String,
-    enum: ['user_created', 'ai_generated', 'imported'],
-    default: 'user_created'
-  },
-  aiPrompt: {
-    type: String,
-    trim: true // сохраняем промпт, если рецепт был создан через AI
   }
 }, {
   timestamps: true
 });
 
-// Индексы
+// Индекс для быстрого поиска
 recipeSchema.index({ userId: 1, createdAt: -1 });
-recipeSchema.index({ userId: 1, category: 1 });
-recipeSchema.index({ userId: 1, isFavorite: 1 });
-recipeSchema.index({ title: 'text', description: 'text' }); // для поиска по тексту
 
-// Виртуальное поле для общего времени приготовления
-recipeSchema.virtual('totalTime').get(function() {
-  if (this.cookingTime && this.cookingTime.total) {
-    return this.cookingTime.total;
+// Виртуальное поле для получения изображения как base64
+recipeSchema.virtual('imageUrl').get(function() {
+  if (this.image && this.imageContentType) {
+    return `data:${this.imageContentType};base64,${this.image.toString('base64')}`;
   }
-  if (this.cookingTime && this.cookingTime.prep && this.cookingTime.cook) {
-    return this.cookingTime.prep + this.cookingTime.cook;
-  }
-  return 0;
+  return null;
 });
 
-// Виртуальное поле для калорий на порцию
-recipeSchema.virtual('caloriesPerServing').get(function() {
-  if (this.nutrition && this.nutrition.calories && this.nutrition.servings) {
-    return Math.round(this.nutrition.calories / this.nutrition.servings);
-  }
-  return 0;
-});
-
-// Статический метод для поиска рецептов пользователя
-recipeSchema.statics.searchUserRecipes = async function(userId, query, category, limit = 20) {
-  const searchQuery = { userId: new mongoose.Types.ObjectId(userId) };
-  
-  if (category && category !== 'all') {
-    searchQuery.category = category;
-  }
-  
-  if (query && query.trim()) {
-    searchQuery.$text = { $search: query.trim() };
-  }
-  
-  return this.find(searchQuery)
-    .sort({ createdAt: -1 })
-    .limit(limit);
-};
-
-// Статический метод для получения избранных рецептов
-recipeSchema.statics.getFavoriteRecipes = async function(userId) {
-  return this.find({
-    userId: new mongoose.Types.ObjectId(userId),
-    isFavorite: true
-  }).sort({ createdAt: -1 });
-};
-
-// Pre-save middleware для расчета общего времени
-recipeSchema.pre('save', function(next) {
-  if (this.cookingTime && this.cookingTime.prep && this.cookingTime.cook) {
-    this.cookingTime.total = this.cookingTime.prep + this.cookingTime.cook;
-  }
-  next();
-});
+// Включаем виртуальные поля в JSON
+recipeSchema.set('toJSON', { virtuals: true });
+recipeSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Recipe', recipeSchema);

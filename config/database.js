@@ -2,14 +2,16 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 20000
+    const mongoURI = `mongodb+srv://${process.env.MONGODB_USERNAME}:${process.env.MONGODB_PASSWORD}@cluster0.1lfp0sx.mongodb.net/${process.env.MONGODB_DATABASE || 'foodlens'}?retryWrites=true&w=majority&appName=Cluster0`;
+    
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     });
-
-    console.log(`🍃 MongoDB Atlas подключен: ${conn.connection.host}`);
-    console.log(`📊 База данных: ${conn.connection.name}`);
+    
+    console.log('✅ MongoDB Atlas подключена успешно');
   } catch (error) {
-    console.error('❌ Ошибка подключения к MongoDB Atlas:', error);
+    console.error('❌ Ошибка подключения к MongoDB:', error.message);
     process.exit(1);
   }
 };

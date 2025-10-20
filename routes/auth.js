@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const Database = require('../utils/database');
 
 const router = express.Router();
 
@@ -9,6 +9,15 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
+    
+    // Проверка, включена ли регистрация
+    const appSettings = await Database.getAppSettings();
+    if (!appSettings.registrationEnabled) {
+      return res.status(403).json({
+        success: false,
+        message: 'Регистрация временно отключена'
+      });
+    }
     
     // Валидация
     if (!email || !password || !name) {
@@ -19,7 +28,7 @@ router.post('/register', async (req, res) => {
     }
     
     // Проверка существующего пользователя
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await Database.getUserByEmail(email);
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -27,25 +36,27 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    // Создание пользователя (пароль хешируется автоматически в модели)
-    const newUser = new User({
-      email: email.toLowerCase(),
-      password,
+    // Хеширование пароля
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Создание пользователя
+    const newUser = await Database.createUser({
+      email,
+      password: hashedPassword,
       name,
-      subscription: {
-        type: 'free',
-        isActive: false
-      },
-      streak: {
-        current: 0,
-        longest: 0
-      },
+      subscriptionType: 'free',
+      isPro: false,
+      subscriptionExpiresAt: null,
+      streak: 0,
       onboardingCompleted: false,
       allergies: [],
-      dailyCalorieGoal: 2000
+      dailyCalories: 2000,
+      macros: {
+        carbs: 270,
+        protein: 130,
+        fat: 58
+      }
     });
-    
-    await newUser.save();
     
     // Создание токена
     const token = jwt.sign(
@@ -55,13 +66,12 @@ router.post('/register', async (req, res) => {
     );
     
     // Удаляем пароль из ответа
-    const userResponse = newUser.toObject();
-    delete userResponse.password;
+    const { password: _, ...userWithoutPassword } = newUser;
     
     res.status(201).json({
       success: true,
       token,
-      user: userResponse
+      user: userWithoutPassword
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -86,7 +96,7 @@ router.post('/login', async (req, res) => {
     }
     
     // Поиск пользователя
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await Database.getUserByEmail(email);
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -94,8 +104,8 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    // Проверка пароля (используем метод из модели)
-    const isPasswordValid = await user.comparePassword(password);
+    // Проверка пароля
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({
         success: false,
@@ -111,13 +121,12 @@ router.post('/login', async (req, res) => {
     );
     
     // Удаляем пароль из ответа
-    const userResponse = user.toObject();
-    delete userResponse.password;
+    const { password: _, ...userWithoutPassword } = user;
     
     res.json({
       success: true,
       token,
-      user: userResponse
+      user: userWithoutPassword
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -140,9 +149,8 @@ router.post('/check-version', (req, res) => {
       });
     }
     
-    // Текущая версия серверa (можно вынести в конфиг)
-    const serverVersion = '1.2.0';
-    const updateDescription = 'Обновление до MongoDB Atlas и новый хостинг на Koyeb';
+    const appSettings = await Database.getAppSettings();
+    const serverVersion = appSettings.currentVersion;
     
     // Сравниваем версии
     const needsUpdate = compareVersions(currentVersion, serverVersion) < 0;
@@ -151,7 +159,7 @@ router.post('/check-version', (req, res) => {
       success: true,
       needsUpdate,
       currentVersion: serverVersion,
-      updateDescription: updateDescription,
+      updateDescription: appSettings.updateDescription || '',
       downloadUrl: needsUpdate ? '/apk/app-release.apk' : null
     });
   } catch (error) {

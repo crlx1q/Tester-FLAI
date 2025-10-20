@@ -1,13 +1,15 @@
 const express = require('express');
 const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
 const authMiddleware = require('../middleware/auth');
 const { checkFileSizeLimit, compressImage } = require('../middleware/image-compression');
-const User = require('../models/User');
-const { compressProfileImage, bufferToBase64 } = require('../utils/imageUtils');
+const Database = require('../utils/database');
+const { LIMITS } = require('../middleware/usage-limits');
 
 const router = express.Router();
+
+// Настройка multer для загрузки аватарки в файловую систему
+const path = require('path');
+const fs = require('fs');
 
 // Создаем папку uploads/avatars если её нет
 const avatarsDir = path.join(__dirname, '../uploads/avatars');
@@ -43,7 +45,7 @@ const upload = multer({
 // Получить профиль
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId);
+    const user = await Database.getUserById(req.userId);
     
     if (!user) {
       return res.status(404).json({
@@ -52,21 +54,11 @@ router.get('/', authMiddleware, async (req, res) => {
       });
     }
     
-    const userResponse = user.toObject();
-    delete userResponse.password;
-    
-    // Подготавливаем фото профиля
-    if (userResponse.profileImage && userResponse.profileImage.data) {
-      userResponse.profileImageBase64 = bufferToBase64(
-        userResponse.profileImage.data, 
-        userResponse.profileImage.contentType
-      );
-      delete userResponse.profileImage;
-    }
+    const { password, ...userWithoutPassword } = user;
     
     res.json({
       success: true,
-      user: userResponse
+      user: userWithoutPassword
     });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -86,15 +78,8 @@ router.put('/', authMiddleware, async (req, res) => {
     delete updates._id;
     delete updates.password;
     delete updates.email;
-    delete updates.profileImage;
-    delete updates.createdAt;
-    delete updates.updatedAt;
     
-    const updatedUser = await User.findByIdAndUpdate(
-      req.userId, 
-      updates, 
-      { new: true, runValidators: true }
-    );
+    const updatedUser = await Database.updateUser(req.userId, updates);
     
     if (!updatedUser) {
       return res.status(404).json({
@@ -103,21 +88,11 @@ router.put('/', authMiddleware, async (req, res) => {
       });
     }
     
-    const userResponse = updatedUser.toObject();
-    delete userResponse.password;
-    
-    // Подготавливаем фото профиля
-    if (userResponse.profileImage && userResponse.profileImage.data) {
-      userResponse.profileImageBase64 = bufferToBase64(
-        userResponse.profileImage.data, 
-        userResponse.profileImage.contentType
-      );
-      delete userResponse.profileImage;
-    }
+    const { password, ...userWithoutPassword } = updatedUser;
     
     res.json({
       success: true,
-      user: userResponse
+      user: userWithoutPassword
     });
   } catch (error) {
     console.error('Update profile error:', error);
@@ -150,10 +125,10 @@ router.post('/change-password', authMiddleware, async (req, res) => {
       });
     }
     
-    const user = await User.findById(req.userId);
+    const user = Database.getUserById(req.userId);
     
     if (!user) {
-      console.log('❤️‍🔥 Пользователь не найден:', req.userId);
+      console.log('❌ Пользователь не найден:', req.userId);
       return res.status(404).json({
         success: false,
         message: 'Пользователь не найден'
@@ -162,11 +137,12 @@ router.post('/change-password', authMiddleware, async (req, res) => {
     
     console.log('✅ Пользователь найден:', user.email);
     
-    // Проверяем старый пароль (используем метод из модели)
-    const isValidPassword = await user.comparePassword(oldPassword);
+    // Проверяем старый пароль
+    const bcrypt = require('bcryptjs');
+    const isValidPassword = await bcrypt.compare(oldPassword, user.password);
     
     if (!isValidPassword) {
-      console.log('❤️‍🔥 Неверный старый пароль');
+      console.log('❌ Неверный старый пароль');
       return res.status(400).json({
         success: false,
         message: 'Неверный старый пароль'
@@ -175,9 +151,11 @@ router.post('/change-password', authMiddleware, async (req, res) => {
     
     console.log('✅ Старый пароль верный');
     
-    // Обновляем пароль (хеширование происходит автоматически)
-    user.password = newPassword;
-    await user.save();
+    // Хешируем новый пароль
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Обновляем пароль
+    await Database.updateUser(req.userId, { password: hashedPassword });
     
     console.log(`✅ Пароль пользователя ${req.userId} успешно изменен`);
     
@@ -195,7 +173,7 @@ router.post('/change-password', authMiddleware, async (req, res) => {
 });
 
 // Завершить онбординг
-router.post('/onboarding', authMiddleware, async (req, res) => {
+router.post('/onboarding', authMiddleware, (req, res) => {
   try {
     const { goal, gender, age, height, weight, activityLevel, allergies } = req.body;
     
@@ -243,25 +221,9 @@ router.post('/onboarding', authMiddleware, async (req, res) => {
       onboardingCompleted: true
     };
     
-    const updatedUser = await User.findByIdAndUpdate(
-      req.userId, 
-      updates, 
-      { new: true, runValidators: true }
-    );
+    const updatedUser = Database.updateUser(req.userId, updates);
     
-    if (!updatedUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'Пользователь не найден'
-      });
-    }
-    
-    const userResponse = updatedUser.toObject();
-    delete userResponse.password;
-    
-    console.log('🎆 Онбординг завершен для пользователя:', updatedUser.email);
-    
-    const userWithoutPassword = userResponse;
+    const { password, ...userWithoutPassword } = updatedUser;
     
     res.json({
       success: true,
@@ -277,9 +239,9 @@ router.post('/onboarding', authMiddleware, async (req, res) => {
 });
 
 // Получить информацию о лимитах и использовании
-router.get('/limits', authMiddleware, (req, res) => {
+router.get('/limits', authMiddleware, async (req, res) => {
   try {
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     
     if (!user) {
       return res.status(404).json({
@@ -297,13 +259,13 @@ router.get('/limits', authMiddleware, (req, res) => {
       const expiresAt = new Date(subscriptionExpiresAt);
       const now = new Date();
       if (now > expiresAt) {
-        Database.updateUserSubscription(user._id, 'free', null);
+        await Database.updateUserSubscription(user._id, 'free', null);
         isPro = false;
         subscriptionExpiresAt = null;
       }
     }
     
-    const usage = Database.getUserUsage(req.userId);
+    const usage = await Database.getUserUsage(req.userId);
     const limits = LIMITS[isPro ? 'pro' : 'free'];
     
     res.json({
@@ -342,7 +304,7 @@ router.get('/limits', authMiddleware, (req, res) => {
 });
 
 // Загрузить аватарку
-router.post('/avatar', authMiddleware, upload.single('avatar'), checkFileSizeLimit, compressImage, (req, res) => {
+router.post('/avatar', authMiddleware, upload.single('avatar'), checkFileSizeLimit, compressImage, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -352,7 +314,7 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), checkFileSizeLim
     }
 
     // Получаем пользователя и удаляем старую аватарку
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     if (user && user.avatar && user.avatar.startsWith('/uploads/')) {
       const oldAvatarPath = path.join(__dirname, '..', user.avatar);
       if (fs.existsSync(oldAvatarPath)) {
@@ -368,7 +330,7 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), checkFileSizeLim
     const avatarUrl = `/uploads/avatars/${req.file.filename}`;
     
     // Обновляем пользователя
-    const updatedUser = Database.updateUser(req.userId, { avatar: avatarUrl });
+    const updatedUser = await Database.updateUser(req.userId, { avatar: avatarUrl });
     
     if (!updatedUser) {
       return res.status(404).json({
@@ -392,9 +354,9 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), checkFileSizeLim
 });
 
 // Удалить профиль
-router.delete('/', authMiddleware, (req, res) => {
+router.delete('/', authMiddleware, async (req, res) => {
   try {
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     
     if (!user) {
       return res.status(404).json({
@@ -417,7 +379,7 @@ router.delete('/', authMiddleware, (req, res) => {
     }
     
     // Удаляем все фото блюд пользователя
-    const userFoods = Database.getFoods(req.userId);
+    const userFoods = await Database.getFoods(req.userId);
     userFoods.forEach(food => {
       if (food.imageUrl) {
         const imagePath = path.join(__dirname, '..', food.imageUrl);
@@ -433,7 +395,7 @@ router.delete('/', authMiddleware, (req, res) => {
     });
     
     // Удаляем все фото рецептов пользователя
-    const userRecipes = Database.getRecipes().filter(r => r.userId === req.userId);
+    const userRecipes = (await Database.getRecipes()).filter(r => r.userId.toString() === req.userId);
     userRecipes.forEach(recipe => {
       if (recipe.imageUrl && recipe.imageUrl.startsWith('/uploads/')) {
         const imagePath = path.join(__dirname, '..', recipe.imageUrl);
@@ -449,7 +411,7 @@ router.delete('/', authMiddleware, (req, res) => {
     });
     
     // Удаляем пользователя из базы (это также удалит все его данные)
-    const deleted = Database.deleteUser(req.userId);
+    const deleted = await Database.deleteUser(req.userId);
     
     console.log(`✅ Профиль пользователя ${req.userId} полностью удален`);
     

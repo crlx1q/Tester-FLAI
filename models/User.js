@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -15,147 +14,117 @@ const userSchema = new mongoose.Schema({
   },
   name: {
     type: String,
-    required: true,
-    trim: true
+    required: true
   },
-  age: {
-    type: Number,
-    min: 1,
-    max: 120
+  avatar: {
+    type: Buffer, // Храним изображение как Buffer в MongoDB
+    default: null
   },
-  gender: {
+  avatarContentType: {
     type: String,
-    enum: ['male', 'female', 'other']
+    default: null
   },
-  height: {
-    type: Number,
-    min: 50,
-    max: 300
-  },
-  weight: {
-    type: Number,
-    min: 20,
-    max: 500
-  },
-  activityLevel: {
+  subscriptionType: {
     type: String,
-    enum: ['sedentary', 'light', 'moderate', 'active', 'very_active'],
-    default: 'moderate'
+    enum: ['free', 'pro'],
+    default: 'free'
   },
-  goal: {
-    type: String,
-    enum: ['lose_weight', 'maintain_weight', 'gain_weight'],
-    default: 'maintain_weight'
+  isPro: {
+    type: Boolean,
+    default: false
   },
-  dailyCalorieGoal: {
+  subscriptionExpiresAt: {
+    type: Date,
+    default: null
+  },
+  streak: {
     type: Number,
-    default: 2000
+    default: 0
   },
-  profileImage: {
-    data: Buffer,
-    contentType: String,
-    filename: String
+  maxStreak: {
+    type: Number,
+    default: 0
+  },
+  lastVisit: {
+    type: Date,
+    default: null
   },
   onboardingCompleted: {
     type: Boolean,
     default: false
   },
-  dietPlan: {
+  goal: {
     type: String,
-    enum: ['regular', 'vegetarian', 'vegan', 'keto', 'paleo', 'mediterranean'],
-    default: 'regular'
+    enum: ['lose_weight', 'gain_muscle', 'maintain_weight'],
+    default: null
+  },
+  gender: {
+    type: String,
+    enum: ['male', 'female'],
+    default: null
+  },
+  age: {
+    type: Number,
+    default: null
+  },
+  height: {
+    type: Number,
+    default: null
+  },
+  weight: {
+    type: Number,
+    default: null
+  },
+  activityLevel: {
+    type: String,
+    enum: ['low', 'moderate', 'high'],
+    default: null
   },
   allergies: [{
-    type: String,
-    trim: true
+    type: String
   }],
-  preferences: {
-    language: {
-      type: String,
-      default: 'ru'
-    },
-    notifications: {
-      type: Boolean,
-      default: true
-    },
-    darkMode: {
-      type: Boolean,
-      default: false
-    }
+  dailyCalories: {
+    type: Number,
+    default: 2000
   },
-  streak: {
-    current: {
-      type: Number,
-      default: 0
-    },
-    longest: {
-      type: Number,
-      default: 0
-    },
-    lastLogDate: {
-      type: Date
-    }
+  macros: {
+    carbs: { type: Number, default: 270 },
+    protein: { type: Number, default: 130 },
+    fat: { type: Number, default: 58 }
   },
-  subscription: {
-    type: {
-      type: String,
-      enum: ['free', 'premium'],
-      default: 'free'
+  usage: {
+    date: { type: String, default: null },
+    photosCount: { type: Number, default: 0 },
+    messagesCount: { type: Number, default: 0 },
+    recipesCount: { type: Number, default: 0 }
+  },
+  favoriteFoods: [{
+    name: String,
+    calories: Number,
+    macros: {
+      protein: Number,
+      fat: Number,
+      carbs: Number
     },
-    expiresAt: Date,
-    isActive: {
-      type: Boolean,
-      default: false
-    }
-  }
+    addedAt: { type: Date, default: Date.now }
+  }],
+  favoriteRecipes: [{
+    type: String
+  }]
 }, {
   timestamps: true
 });
 
-// Индексы для быстрого поиска
-userSchema.index({ email: 1 });
-userSchema.index({ createdAt: -1 });
-
-// Хеширование пароля перед сохранением
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
+// Виртуальное поле для получения avatar как base64
+userSchema.virtual('avatarUrl').get(function() {
+  if (this.avatar && this.avatarContentType) {
+    return `data:${this.avatarContentType};base64,${this.avatar.toString('base64')}`;
   }
+  return null;
 });
 
-// Метод для проверки пароля
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
-
-// Виртуальное поле для полного имени
-userSchema.virtual('fullName').get(function() {
-  return this.name;
-});
-
-// При удалении пользователя - удаляем все связанные данные
-userSchema.pre('deleteOne', { document: true, query: false }, async function(next) {
-  try {
-    const Food = mongoose.model('Food');
-    const Recipe = mongoose.model('Recipe');
-    
-    // Удаляем все записи о еде пользователя
-    await Food.deleteMany({ userId: this._id });
-    
-    // Удаляем все рецепты пользователя
-    await Recipe.deleteMany({ userId: this._id });
-    
-    console.log(`🗑️ Удалены все данные пользователя: ${this.email}`);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+// Включаем виртуальные поля в JSON
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('User', userSchema);
