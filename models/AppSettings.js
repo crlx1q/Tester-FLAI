@@ -16,6 +16,10 @@ const appSettingsSchema = new mongoose.Schema({
   hasUpdate: {
     type: Boolean,
     default: false
+  },
+  geminiApiKey: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

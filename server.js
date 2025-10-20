@@ -78,6 +78,20 @@ const startServer = async () => {
     // Подключаемся к MongoDB Atlas
     await connectDB();
     
+    // Загружаем Gemini API ключ из БД
+    try {
+      const Database = require('./utils/database-mongo');
+      const settings = await Database.getAppSettings();
+      if (settings && settings.geminiApiKey) {
+        process.env.GEMINI_API_KEY = settings.geminiApiKey;
+        console.log('✅ Gemini API ключ загружен из БД');
+      } else {
+        console.log('⚠️ Gemini API ключ не найден в БД, используется из .env');
+      }
+    } catch (error) {
+      console.error('⚠️ Ошибка загрузки Gemini API ключа:', error.message);
+    }
+    
     // Запускаем сервер только после успешного подключения к БД
     app.listen(PORT, () => {
       console.log(`🚀 FoodLens AI Server запущен на порту ${PORT}`);

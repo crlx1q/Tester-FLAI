@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
 const Database = require('../utils/database');
 
 const router = express.Router();
@@ -300,6 +301,93 @@ router.post('/upload-apk', checkAdminAuth, uploadApk.single('apk'), (req, res) =
     res.status(500).json({
       success: false,
       message: 'Ошибка загрузки APK файла'
+    });
+  }
+});
+
+// Скачать APK файл (публичный маршрут)
+router.get('/download-apk', (req, res) => {
+  try {
+    const apkPath = path.join(__dirname, '../apk/app-release.apk');
+    
+    if (!fs.existsSync(apkPath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'APK файл не найден'
+      });
+    }
+    
+    res.download(apkPath, 'FoodLens-AI.apk', (err) => {
+      if (err) {
+        console.error('Download error:', err);
+        res.status(500).json({
+          success: false,
+          message: 'Ошибка скачивания APK'
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Download APK error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка скачивания APK файла'
+    });
+  }
+});
+
+// Обновить Gemini API ключ
+router.post('/settings/gemini-api-key', checkAdminAuth, async (req, res) => {
+  try {
+    const { apiKey } = req.body;
+    
+    if (!apiKey || apiKey.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'API ключ обязателен'
+      });
+    }
+    
+    // Сохраняем API ключ в БД (в открытом виде, но не отдаем клиенту)
+    const updatedSettings = await Database.updateAppSettings({
+      geminiApiKey: apiKey
+    });
+    
+    // Также обновляем переменную окружения для текущего процесса
+    process.env.GEMINI_API_KEY = apiKey;
+    
+    console.log('✅ Gemini API ключ обновлен');
+    
+    res.json({
+      success: true,
+      message: 'Gemini API ключ успешно сохранен',
+      keyPreview: apiKey.substring(0, 8) + '...' + apiKey.slice(-4) // Показываем только начало и конец
+    });
+  } catch (error) {
+    console.error('Update Gemini API key error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка сохранения API ключа'
+    });
+  }
+});
+
+// Проверить наличие Gemini API ключа
+router.get('/settings/gemini-api-key/status', checkAdminAuth, async (req, res) => {
+  try {
+    const settings = await Database.getAppSettings();
+    
+    res.json({
+      success: true,
+      hasKey: !!settings.geminiApiKey,
+      keyPreview: settings.geminiApiKey 
+        ? settings.geminiApiKey.substring(0, 8) + '...' + settings.geminiApiKey.slice(-4)
+        : null
+    });
+  } catch (error) {
+    console.error('Get Gemini API key status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения статуса API ключа'
     });
   }
 });
