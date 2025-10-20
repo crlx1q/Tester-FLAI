@@ -3,8 +3,7 @@ const mongoose = require('mongoose');
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 20000
     });
 
     console.log(`🍃 MongoDB Atlas подключен: ${conn.connection.host}`);
