@@ -101,9 +101,9 @@ router.post('/analyze', authMiddleware, upload.single('image'), checkFileSizeLim
 });
 
 // История еды
-router.get('/history', authMiddleware, (req, res) => {
+router.get('/history', authMiddleware, async (req, res) => {
   try {
-    const foods = Database.getFoods(req.userId);
+    const foods = await Database.getFoods(req.userId);
     
     // Сортируем по дате (новые первые)
     foods.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -122,9 +122,9 @@ router.get('/history', authMiddleware, (req, res) => {
 });
 
 // Дневная сводка
-router.get('/daily-summary', authMiddleware, (req, res) => {
+router.get('/daily-summary', authMiddleware, async (req, res) => {
   try {
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     
     // Получаем дату из query параметра или используем сегодня
     let targetDate = new Date();
@@ -132,7 +132,7 @@ router.get('/daily-summary', authMiddleware, (req, res) => {
       targetDate = new Date(req.query.date);
     }
     
-    const dayFoods = Database.getFoodsByDate(req.userId, targetDate);
+    const dayFoods = await Database.getFoodsByDate(req.userId, targetDate);
     
     // Подсчитываем калории и макросы
     let totalCalories = 0;
@@ -170,9 +170,9 @@ router.get('/daily-summary', authMiddleware, (req, res) => {
 });
 
 // Прогресс за неделю
-router.get('/weekly-progress', authMiddleware, (req, res) => {
+router.get('/weekly-progress', authMiddleware, async (req, res) => {
   try {
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     const weekData = [];
     
     // Получаем данные за последние 7 дней
@@ -181,7 +181,7 @@ router.get('/weekly-progress', authMiddleware, (req, res) => {
       date.setDate(date.getDate() - i);
       date.setHours(0, 0, 0, 0);
       
-      const dayFoods = Database.getFoodsByDate(req.userId, date);
+      const dayFoods = await Database.getFoodsByDate(req.userId, date);
       const totalCalories = dayFoods.reduce((sum, f) => sum + f.calories, 0);
       const percentage = user.dailyCalories > 0 
         ? Math.round((totalCalories / user.dailyCalories) * 100) 
@@ -210,7 +210,7 @@ router.get('/weekly-progress', authMiddleware, (req, res) => {
 });
 
 // Активные дни месяца
-router.get('/monthly-active-days', authMiddleware, (req, res) => {
+router.get('/monthly-active-days', authMiddleware, async (req, res) => {
   try {
     const { year, month } = req.query;
     
@@ -229,7 +229,7 @@ router.get('/monthly-active-days', authMiddleware, (req, res) => {
     const currentDate = new Date(startDate);
     
     while (currentDate <= endDate) {
-      const foods = Database.getFoodsByDate(req.userId, currentDate);
+      const foods = await Database.getFoodsByDate(req.userId, currentDate);
       if (foods && foods.length > 0) {
         // Используем UTC дату для строки
         const dateStr = currentDate.toISOString().split('T')[0];
@@ -253,9 +253,9 @@ router.get('/monthly-active-days', authMiddleware, (req, res) => {
 });
 
 // Обновить блюдо
-router.put('/:id', authMiddleware, (req, res) => {
+router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const food = Database.getFoodById(req.params.id);
+    const food = await Database.getFoodById(req.params.id);
     
     if (!food) {
       return res.status(404).json({
@@ -280,7 +280,7 @@ router.put('/:id', authMiddleware, (req, res) => {
       новое: { name, calories, healthScore }
     });
     
-    const updatedFood = Database.updateFood(req.params.id, {
+    const updatedFood = await Database.updateFood(req.params.id, {
       name,
       calories,
       macros,
@@ -377,9 +377,9 @@ router.put('/:id/update-with-image', authMiddleware, async (req, res) => {
 });
 
 // Удалить блюдо
-router.delete('/:id', authMiddleware, (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const food = Database.getFoodById(req.params.id);
+    const food = await Database.getFoodById(req.params.id);
     
     if (!food) {
       return res.status(404).json({
@@ -410,7 +410,7 @@ router.delete('/:id', authMiddleware, (req, res) => {
       }
     }
     
-    const deletedFood = Database.deleteFood(req.params.id);
+    const deletedFood = await Database.deleteFood(req.params.id);
     
     res.json({
       success: true,
@@ -427,9 +427,9 @@ router.delete('/:id', authMiddleware, (req, res) => {
 });
 
 // Добавить блюдо в избранное
-router.post('/:id/favorite', authMiddleware, (req, res) => {
+router.post('/:id/favorite', authMiddleware, async (req, res) => {
   try {
-    const food = Database.getFoodById(req.params.id);
+    const food = await Database.getFoodById(req.params.id);
     
     if (!food) {
       return res.status(404).json({
@@ -446,7 +446,7 @@ router.post('/:id/favorite', authMiddleware, (req, res) => {
       });
     }
     
-    const favoriteFood = Database.addFavoriteFood(req.userId, {
+    const favoriteFood = await Database.addFavoriteFood(req.userId, {
       name: food.name,
       calories: food.calories,
       macros: food.macros
@@ -467,9 +467,9 @@ router.post('/:id/favorite', authMiddleware, (req, res) => {
 });
 
 // Получить избранные блюда
-router.get('/favorites/list', authMiddleware, (req, res) => {
+router.get('/favorites/list', authMiddleware, async (req, res) => {
   try {
-    const favoriteFoods = Database.getFavoriteFoods(req.userId);
+    const favoriteFoods = await Database.getFavoriteFoods(req.userId);
     
     res.json({
       success: true,
@@ -485,9 +485,9 @@ router.get('/favorites/list', authMiddleware, (req, res) => {
 });
 
 // Удалить блюдо из избранного
-router.delete('/favorites/:id', authMiddleware, (req, res) => {
+router.delete('/favorites/:id', authMiddleware, async (req, res) => {
   try {
-    const deletedFood = Database.removeFavoriteFood(req.userId, req.params.id);
+    const deletedFood = await Database.removeFavoriteFood(req.userId, req.params.id);
     
     if (!deletedFood) {
       return res.status(404).json({
@@ -511,9 +511,9 @@ router.delete('/favorites/:id', authMiddleware, (req, res) => {
 });
 
 // Добавить избранное блюдо в дневник
-router.post('/favorites/:id/add-to-diary', authMiddleware, (req, res) => {
+router.post('/favorites/:id/add-to-diary', authMiddleware, async (req, res) => {
   try {
-    const favoriteFoods = Database.getFavoriteFoods(req.userId);
+    const favoriteFoods = await Database.getFavoriteFoods(req.userId);
     const favoriteFood = favoriteFoods.find(f => f._id === req.params.id);
     
     if (!favoriteFood) {
@@ -814,7 +814,7 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
 // ==================== WATER TRACKING ====================
 
 // Получить данные о воде за конкретную дату
-router.get('/water/:date', authMiddleware, (req, res) => {
+router.get('/water/:date', authMiddleware, async (req, res) => {
   try {
     const { date } = req.params;
     
@@ -825,7 +825,7 @@ router.get('/water/:date', authMiddleware, (req, res) => {
       });
     }
     
-    const waterIntake = Database.getWaterIntakeByDate(req.userId, date);
+    const waterIntake = await Database.getWaterIntakeByDate(req.userId, date);
     
     res.json({
       success: true,
@@ -841,7 +841,7 @@ router.get('/water/:date', authMiddleware, (req, res) => {
 });
 
 // Сохранить данные о воде
-router.post('/water', authMiddleware, (req, res) => {
+router.post('/water', authMiddleware, async (req, res) => {
   try {
     const { date, amount } = req.body;
     
@@ -865,7 +865,7 @@ router.post('/water', authMiddleware, (req, res) => {
       amount
     });
     
-    const waterIntake = Database.saveWaterIntake(req.userId, date, amount);
+    const waterIntake = await Database.saveWaterIntake(req.userId, date, amount);
     
     console.log('✅ Вода сохранена:', waterIntake);
     

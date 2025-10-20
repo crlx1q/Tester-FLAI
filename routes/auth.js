@@ -138,7 +138,7 @@ router.post('/login', async (req, res) => {
 });
 
 // Проверка версии приложения
-router.post('/check-version', (req, res) => {
+router.post('/check-version', async (req, res) => {
   try {
     const { currentVersion } = req.body;
     

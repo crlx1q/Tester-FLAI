@@ -73,18 +73,18 @@ router.post('/auth', (req, res) => {
 });
 
 // Получить всех пользователей
-router.get('/users', checkAdminAuth, (req, res) => {
+router.get('/users', checkAdminAuth, async (req, res) => {
   try {
-    const users = Database.getAllUsersForAdmin();
+    const users = await Database.getAllUsersForAdmin();
     
     // Добавляем информацию о текущем использовании для каждого пользователя
-    const usersWithUsage = users.map(user => {
-      const usage = Database.getUserUsage(user._id);
+    const usersWithUsage = await Promise.all(users.map(async user => {
+      const usage = await Database.getUserUsage(user._id);
       return {
         ...user,
         currentUsage: usage
       };
-    });
+    }));
     
     res.json({
       success: true,
@@ -100,7 +100,7 @@ router.get('/users', checkAdminAuth, (req, res) => {
 });
 
 // Выдать/обновить подписку пользователю
-router.post('/users/:userId/subscription', checkAdminAuth, (req, res) => {
+router.post('/users/:userId/subscription', checkAdminAuth, async (req, res) => {
   try {
     const { userId } = req.params;
     const { subscriptionType, durationDays } = req.body;
@@ -119,7 +119,7 @@ router.post('/users/:userId/subscription', checkAdminAuth, (req, res) => {
       expiresAt = expirationDate.toISOString();
     }
     
-    const updatedUser = Database.updateUserSubscription(userId, subscriptionType, expiresAt);
+    const updatedUser = await Database.updateUserSubscription(userId, subscriptionType, expiresAt);
     
     if (!updatedUser) {
       return res.status(404).json({
@@ -145,9 +145,9 @@ router.post('/users/:userId/subscription', checkAdminAuth, (req, res) => {
 });
 
 // Получить статистику по использованию
-router.get('/stats', checkAdminAuth, (req, res) => {
+router.get('/stats', checkAdminAuth, async (req, res) => {
   try {
-    const users = Database.getAllUsersForAdmin();
+    const users = await Database.getAllUsersForAdmin();
     
     const stats = {
       totalUsers: users.length,
@@ -184,11 +184,11 @@ router.get('/stats', checkAdminAuth, (req, res) => {
 });
 
 // Полное удаление пользователя
-router.delete('/users/:userId', checkAdminAuth, (req, res) => {
+router.delete('/users/:userId', checkAdminAuth, async (req, res) => {
   try {
     const { userId } = req.params;
     
-    const deletedUser = Database.deleteUserCompletely(userId);
+    const deletedUser = await Database.deleteUserCompletely(userId);
     
     if (!deletedUser) {
       return res.status(404).json({
@@ -211,9 +211,9 @@ router.delete('/users/:userId', checkAdminAuth, (req, res) => {
 });
 
 // Получить настройки приложения
-router.get('/settings', checkAdminAuth, (req, res) => {
+router.get('/settings', checkAdminAuth, async (req, res) => {
   try {
-    const settings = Database.getAppSettings();
+    const settings = await Database.getAppSettings();
     res.json({
       success: true,
       settings
@@ -228,10 +228,10 @@ router.get('/settings', checkAdminAuth, (req, res) => {
 });
 
 // Переключить регистрацию
-router.post('/settings/toggle-registration', checkAdminAuth, (req, res) => {
+router.post('/settings/toggle-registration', checkAdminAuth, async (req, res) => {
   try {
-    const settings = Database.getAppSettings();
-    const updatedSettings = Database.updateAppSettings({
+    const settings = await Database.getAppSettings();
+    const updatedSettings = await Database.updateAppSettings({
       registrationEnabled: !settings.registrationEnabled
     });
     
@@ -250,7 +250,7 @@ router.post('/settings/toggle-registration', checkAdminAuth, (req, res) => {
 });
 
 // Обновить версию приложения
-router.post('/settings/update-version', checkAdminAuth, (req, res) => {
+router.post('/settings/update-version', checkAdminAuth, async (req, res) => {
   try {
     const { version, description } = req.body;
     
@@ -261,7 +261,7 @@ router.post('/settings/update-version', checkAdminAuth, (req, res) => {
       });
     }
     
-    const updatedSettings = Database.updateAppSettings({
+    const updatedSettings = await Database.updateAppSettings({
       currentVersion: version,
       updateDescription: description || '',
       hasUpdate: true
