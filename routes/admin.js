@@ -77,18 +77,15 @@ router.get('/users', checkAdminAuth, async (req, res) => {
   try {
     const users = await Database.getAllUsersForAdmin();
     
-    // Добавляем информацию о текущем использовании для каждого пользователя
-    const usersWithUsage = await Promise.all(users.map(async user => {
-      const usage = await Database.getUserUsage(user._id);
-      return {
-        ...user,
-        currentUsage: usage
-      };
-    }));
+    // Преобразуем Mongoose документы в обычные объекты
+    const usersData = users.map(user => {
+      const userObj = user.toObject ? user.toObject() : user;
+      return userObj;
+    });
     
     res.json({
       success: true,
-      users: usersWithUsage
+      users: usersData
     });
   } catch (error) {
     console.error('Get users error:', error);

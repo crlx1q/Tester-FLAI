@@ -71,6 +71,7 @@
         /* Градиентный текст */
         .gradient-text {
             background: linear-gradient(135deg, #fb923c, #f97316);
+            background-clip: text;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -618,12 +619,16 @@
         try {
             const response = await fetch(`${API_URL}/admin/users`, { headers: { 'Authorization': `Bearer ${authToken}` } });
             const data = await response.json();
+            console.log('📊 Loaded users:', data);
             if (data.success) {
                 allUsers = data.users.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)); // Сортируем по дате
+                console.log('✅ All users:', allUsers.length, allUsers);
                 renderUsers(allUsers);
+            } else {
+                console.error('❌ Failed to load users:', data.message);
             }
         } catch (error) {
-            console.error('Ошибка загрузки пользователей:', error);
+            console.error('❌ Ошибка загрузки пользователей:', error);
         }
     }
 
@@ -640,17 +645,23 @@
         }
 
         users.forEach(user => {
+            // Проверка на валидность данных пользователя
+            if (!user || !user._id) {
+                console.error('Invalid user data:', user);
+                return;
+            }
+            
             const isPro = user.subscriptionType === 'pro';
-            const usage = user.currentUsage || { photosCount: 0, messagesCount: 0, recipesCount: 0 };
+            const usage = user.usage || { photosCount: 0, messagesCount: 0, recipesCount: 0 };
             const limits = isPro 
                 ? { photos: 50, messages: 100, recipes: 30 } 
                 : { photos: 2, messages: 10, recipes: 1 };
             
             // Calculate days remaining
             let daysRemainingText = '';
-            if (isPro && user.subscriptionEndsAt) {
+            if (isPro && user.subscriptionExpiresAt) {
                 const now = new Date();
-                const endsAt = new Date(user.subscriptionEndsAt);
+                const endsAt = new Date(user.subscriptionExpiresAt);
                 const daysRemaining = Math.ceil((endsAt - now) / (1000 * 60 * 60 * 24));
                 if (daysRemaining > 0) {
                     daysRemainingText = `<p class="text-xs text-orange-400 mt-1"><i data-lucide="clock" class="w-3 h-3 inline"></i> Осталось: ${daysRemaining} дн.</p>`;
@@ -665,13 +676,13 @@
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div class="flex-grow">
                         <div class="flex items-center gap-3 mb-1">
-                            <h3 class="text-lg font-bold text-white truncate">${user.name}</h3>
+                            <h3 class="text-lg font-bold text-white truncate">${user.name || 'Без имени'}</h3>
                             <span class="badge ${isPro ? 'badge-pro' : 'badge-free'}">
                                 ${isPro ? '<i data-lucide="crown" class="w-3 h-3"></i> PRO' : 'FREE'}
                             </span>
                         </div>
-                        <p class="text-sm text-slate-400 truncate">${user.email}</p>
-                        <p class="text-xs text-slate-500 mt-1">ID: ${user._id}</p>
+                        <p class="text-sm text-slate-400 truncate">${user.email || 'Нет email'}</p>
+                        <p class="text-xs text-slate-500 mt-1">ID: ${user._id || 'Нет ID'}</p>
                         ${daysRemainingText}
                     </div>
                     <div class="flex gap-2 self-start sm:self-center">
