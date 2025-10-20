@@ -1,0 +1,38 @@
+# Конфигурация для Koyeb
+app: foodlens-ai
+
+services:
+  - name: foodlens-ai-server
+    type: docker
+    docker:
+      dockerfile: Dockerfile
+    ports:
+      - port: 8000
+        protocol: http
+    env:
+      - name: NODE_ENV
+        value: production
+      - name: PORT
+        value: "8000"
+      - name: MONGODB_URI
+        value: "{{ secret.MONGODB_URI }}"
+      - name: JWT_SECRET
+        value: "{{ secret.JWT_SECRET }}"
+      - name: AI_API_KEY
+        value: "{{ secret.AI_API_KEY }}"
+      - name: AI_PROVIDER
+        value: "{{ secret.AI_PROVIDER }}"
+      - name: AI_API_URL
+        value: "{{ secret.AI_API_URL }}"
+      - name: AI_MODEL
+        value: "{{ secret.AI_MODEL }}"
+      - name: ADMIN_PASSWORD
+        value: "{{ secret.ADMIN_PASSWORD }}"
+    health_checks:
+      - path: /api/health
+        port: 8000
+        protocol: http
+    regions:
+      - fra # Frankfurt, Germany (ближайший к России регион)
+    instance:
+      type: nano # Самый дешевый тип инстанса
