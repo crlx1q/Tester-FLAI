@@ -801,7 +801,7 @@
         const apiKey = document.getElementById('geminiKeyInput').value.trim();
         if (!apiKey) return showAlert('Ключ не может быть пустым', 'error');
         try {
-            const response = await fetch(`${API_URL}/admin/ai/gemini-key`, {
+            const response = await fetch(`${API_URL}/admin/settings/gemini-api-key`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ apiKey })
@@ -813,7 +813,10 @@
             } else {
                  showAlert(data.message || 'Ошибка сохранения ключа', 'error');
             }
-        } catch (error) { showAlert('Ошибка сохранения ключа', 'error'); }
+        } catch (error) { 
+            console.error('Gemini API key error:', error);
+            showAlert('Ошибка сохранения ключа', 'error'); 
+        }
     }
 
     // Объединенная функция загрузки APK и публикации
