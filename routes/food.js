@@ -108,6 +108,11 @@ router.get('/history', authMiddleware, async (req, res) => {
     // Сортируем по дате (новые первые)
     foods.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     
+    console.log(`📋 История еды для пользователя ${req.userId}: ${foods.length} блюд`);
+    if (foods.length > 0) {
+      console.log(`🖼️ Первое блюдо имеет imageUrl: ${!!foods[0].imageUrl}`);
+    }
+    
     res.json({
       success: true,
       foods
@@ -389,26 +394,14 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
     
     // Проверяем, что блюдо принадлежит текущему пользователю
-    if (food.userId !== req.userId) {
+    if (food.userId.toString() !== req.userId) {
       return res.status(403).json({
         success: false,
         message: 'Нет доступа к этому блюду'
       });
     }
     
-    // Удаляем изображение если есть
-    if (food.imageUrl) {
-      const fs = require('fs');
-      const imagePath = path.join(__dirname, '..', food.imageUrl);
-      if (fs.existsSync(imagePath)) {
-        try {
-          fs.unlinkSync(imagePath);
-          console.log(`🗑️ Удалено изображение: ${imagePath}`);
-        } catch (err) {
-          console.error('Ошибка удаления изображения:', err);
-        }
-      }
-    }
+    // Изображения хранятся в MongoDB как Buffer, удаление файлов не требуется
     
     const deletedFood = await Database.deleteFood(req.params.id);
     

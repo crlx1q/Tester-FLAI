@@ -507,7 +507,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       });
     }
     
-    if (recipe.userId !== req.userId) {
+    if (recipe.userId.toString() !== req.userId) {
       return res.status(403).json({
         success: false,
         message: 'Нет прав на редактирование'
@@ -541,22 +541,15 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       });
     }
     
-    if (recipe.userId !== req.userId) {
+    if (recipe.userId.toString() !== req.userId) {
       return res.status(403).json({
         success: false,
         message: 'Нет прав на удаление'
       });
     }
     
-    // Удаляем изображение если есть
-    if (recipe.imageUrl) {
-      const imagePath = path.join(__dirname, '..', recipe.imageUrl);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    }
-    
-    Database.deleteRecipe(req.params.id);
+    // Изображения хранятся в MongoDB как Buffer, удаление файлов не требуется
+    await Database.deleteRecipe(req.params.id);
     
     res.json({
       success: true,

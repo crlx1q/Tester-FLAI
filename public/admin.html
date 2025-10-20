@@ -487,7 +487,8 @@
     lucide.createIcons();
 
     // --- JavaScript логика ---
-    const API_URL = 'http://localhost:3000/api'; // ЗАМЕНИТЕ НА ВАШ URL
+    // Автоматически определяем API URL (работает и локально, и на Koyeb)
+    const API_URL = window.location.origin + '/api';
     let authToken = localStorage.getItem('adminToken');
     let allUsers = [];
 

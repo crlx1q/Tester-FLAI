@@ -307,7 +307,7 @@ router.get('/limits', authMiddleware, async (req, res) => {
 });
 
 // Загрузить аватарку
-router.post('/avatar', authMiddleware, upload.single('avatar'), checkFileSizeLimit, compressImage, async (req, res) => {
+router.post('/avatar', authMiddleware, upload.single('avatar'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
