@@ -121,14 +121,17 @@ router.get('/history', authMiddleware, async (req, res) => {
     // Сортируем по дате (новые первые)
     foods.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     
-    console.log(`📋 История еды для пользователя ${req.userId}: ${foods.length} блюд`);
-    if (foods.length > 0) {
-      console.log(`🖼️ Первое блюдо имеет imageUrl: ${!!foods[0].imageUrl}`);
+    // Преобразуем Mongoose документы в объекты с виртуальными полями
+    const foodsWithImages = foods.map(food => food.toObject ? food.toObject() : food);
+    
+    console.log(`📋 История еды для пользователя ${req.userId}: ${foodsWithImages.length} блюд`);
+    if (foodsWithImages.length > 0) {
+      console.log(`🖼️ Первое блюдо имеет imageUrl: ${!!foodsWithImages[0].imageUrl}`);
     }
     
     res.json({
       success: true,
-      foods
+      foods: foodsWithImages
     });
   } catch (error) {
     console.error('Get food history error:', error);
@@ -167,6 +170,9 @@ router.get('/daily-summary', authMiddleware, async (req, res) => {
     
     const remainingCalories = user.dailyCalories - totalCalories;
     
+    // Преобразуем Mongoose документы в объекты с виртуальными полями
+    const foodsWithImages = dayFoods.map(food => food.toObject ? food.toObject() : food);
+    
     res.json({
       success: true,
       data: {
@@ -175,7 +181,7 @@ router.get('/daily-summary', authMiddleware, async (req, res) => {
         remainingCalories,
         consumedMacros,
         targetMacros: user.macros,
-        foods: dayFoods
+        foods: foodsWithImages
       }
     });
   } catch (error) {

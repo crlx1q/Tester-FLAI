@@ -361,8 +361,10 @@ router.get('/', authMiddleware, async (req, res) => {
     // Добавляем информацию об авторе к каждому пользовательскому рецепту
     const userRecipesWithAuthors = await Promise.all(allUserRecipes.map(async recipe => {
       const author = await Database.getUserById(recipe.userId);
+      // Преобразуем Mongoose документ в объект с виртуальными полями
+      const recipeObj = recipe.toObject ? recipe.toObject() : recipe;
       return {
-        ...recipe,
+        ...recipeObj,
         author: author ? {
           name: author.name || 'Пользователь',
           isVerified: false,
