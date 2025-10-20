@@ -366,6 +366,16 @@
                                                 <input type="text" id="updateDescription" placeholder="Краткое описание..." class="form-input">
                                             </div>
                                         </div>
+                                        <!-- Прогресс-бар загрузки -->
+                                        <div id="uploadProgress" class="hidden">
+                                            <div class="bg-slate-700 rounded-full h-3 overflow-hidden">
+                                                <div id="uploadProgressBar" class="bg-gradient-to-r from-orange-500 to-orange-400 h-full transition-all duration-300" style="width: 0%"></div>
+                                            </div>
+                                            <p class="text-sm text-slate-300 mt-2 text-center">
+                                                <span id="uploadProgressText">0%</span> - <span id="uploadProgressSize">0 MB / 0 MB</span>
+                                            </p>
+                                        </div>
+                                        
                                         <button type="button" id="uploadAndPublishBtn" class="btn btn-orange w-full">
                                             <i data-lucide="upload-cloud"></i>
                                             <span>Загрузить APK и опубликовать</span>
@@ -818,27 +828,65 @@
         
         const btn = document.getElementById('uploadAndPublishBtn');
         const originalText = btn.innerHTML;
+        const progressContainer = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('uploadProgressBar');
+        const progressText = document.getElementById('uploadProgressText');
+        const progressSize = document.getElementById('uploadProgressSize');
+        
         btn.disabled = true;
-        btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Загрузка...</span>';
+        btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Подготовка...</span>';
         lucide.createIcons();
         
+        // Показываем прогресс-бар
+        progressContainer.classList.remove('hidden');
+        progressBar.style.width = '0%';
+        progressText.textContent = '0%';
+        progressSize.textContent = '0 MB / 0 MB';
+        
         try {
-            // 1. Загрузка APK
-            const formData = new FormData();
-            formData.append('apk', file);
-            
-            const uploadResponse = await fetch(`${API_URL}/admin/upload-apk`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${authToken}` },
-                body: formData
+            // 1. Загрузка APK с прогресс-баром
+            await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                const formData = new FormData();
+                formData.append('apk', file);
+                
+                // Отслеживание прогресса загрузки
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = Math.round((e.loaded / e.total) * 100);
+                        const loadedMB = (e.loaded / 1024 / 1024).toFixed(2);
+                        const totalMB = (e.total / 1024 / 1024).toFixed(2);
+                        
+                        progressBar.style.width = percentComplete + '%';
+                        progressText.textContent = percentComplete + '%';
+                        progressSize.textContent = `${loadedMB} MB / ${totalMB} MB`;
+                        
+                        btn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Загрузка ${percentComplete}%...</span>`;
+                        lucide.createIcons();
+                    }
+                });
+                
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(JSON.parse(xhr.responseText));
+                    } else {
+                        reject(new Error(JSON.parse(xhr.responseText).message || 'Ошибка загрузки APK'));
+                    }
+                });
+                
+                xhr.addEventListener('error', () => {
+                    reject(new Error('Ошибка сети при загрузке APK'));
+                });
+                
+                xhr.open('POST', `${API_URL}/admin/upload-apk`);
+                xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+                xhr.send(formData);
             });
             
-            if (!uploadResponse.ok) {
-                const data = await uploadResponse.json();
-                throw new Error(data.message || 'Ошибка загрузки APK');
-            }
-            
             // 2. Публикация версии
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i><span>Публикация версии...</span>';
+            lucide.createIcons();
+            
             const versionResponse = await fetch(`${API_URL}/admin/settings/update-version`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
@@ -856,10 +904,12 @@
             fileInput.value = '';
             document.getElementById('updateVersion').value = '';
             document.getElementById('updateDescription').value = '';
+            progressContainer.classList.add('hidden');
             
             loadAppSettings();
         } catch (error) {
             showAlert(error.message || 'Ошибка обновления', 'error');
+            progressContainer.classList.add('hidden');
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalText;
