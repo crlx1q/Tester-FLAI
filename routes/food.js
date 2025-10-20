@@ -61,7 +61,7 @@ router.post('/analyze', authMiddleware, upload.single('image'), checkFileSizeLim
     }
     
     // Получаем пользователя для персонализации
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     
     // Анализируем изображение через AI
     const analysis = await analyzeFood(req.file.path, user);
@@ -73,19 +73,29 @@ router.post('/analyze', authMiddleware, upload.single('image'), checkFileSizeLim
     else if (hour >= 11 && hour < 16) mealType = 'Обед';
     else if (hour >= 16 && hour < 22) mealType = 'Ужин';
     
-    // Сохраняем в базу - всегда проверяем что name не пустой
+    // Читаем файл и конвертируем в Buffer для MongoDB
+    const fs = require('fs');
+    const imageBuffer = fs.readFileSync(req.file.path);
+    
+    // Удаляем временный файл
+    fs.unlinkSync(req.file.path);
+    
+    // Сохраняем в базу с Buffer (НЕ путь к файлу!)
     const foodData = {
       userId: req.userId,
       name: (analysis.name && analysis.name.trim() !== '') ? analysis.name : 'Блюдо',
-      imageUrl: `/uploads/${req.file.filename}`,
+      imageUrl: `data:image/jpeg;base64,${imageBuffer.toString('base64')}`, // ✅ Base64 для createFood
       calories: analysis.calories || 0,
       macros: analysis.macros || { protein: 0, fat: 0, carbs: 0 },
       mealType
     };
     
-    console.log('Saving food:', foodData);
+    console.log('💾 Saving food to database:', {
+      ...foodData,
+      imageUrl: foodData.imageUrl.substring(0, 50) + '...' // Не логируем весь base64
+    });
     
-    const newFood = Database.createFood(foodData);
+    const newFood = await Database.createFood(foodData);
     
     res.json({
       success: true,
@@ -647,7 +657,7 @@ router.post('/analyze-description', authMiddleware, async (req, res) => {
       maxStreak = 1;
     }
     
-    Database.updateUser(req.userId, {
+    await Database.updateUser(req.userId, {
       streak: newStreak,
       maxStreak: maxStreak,
       lastVisit: now.toISOString()
@@ -708,24 +718,7 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
     // Анализируем через Gemini Vision
     const foodData = await analyzeImageFood(base64Data);
     
-    console.log('📊 AI Analysis Result:', JSON.stringify(foodData, null, 2));
-    
-    // Сохраняем изображение на диск
-    const fs = require('fs');
-    const path = require('path');
-    const uploadDir = 'uploads/food';
-    
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    
-    const filename = `food-${Date.now()}-${req.userId}.jpg`;
-    const filepath = path.join(uploadDir, filename);
-    
-    // Сохраняем base64 как файл
-    fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
-    
-    const imageUrl = `/uploads/food/${filename}`;
+    console.log('📊 AI Analysis Result:', foodData);
     
     // Определяем тип приема пищи по времени
     const hour = new Date().getHours();
@@ -742,19 +735,19 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
       calories: foodData.calories || 0,
       macros: foodData.macros || { protein: 0, fat: 0, carbs: 0 },
       healthScore: foodData.healthScore !== undefined ? foodData.healthScore : 50,
-      imageUrl: imageUrl, // Сохраняем путь к фото
+      imageUrl: `data:image/jpeg;base64,${base64Data}`, // ✅ Base64 для MongoDB!
       mealType
     };
     
-    console.log('💾 Saving food to database:', JSON.stringify(foodToSave, null, 2));
-    const newFood = Database.createFood(foodToSave);
-    console.log('✅ Food saved:', JSON.stringify(newFood, null, 2));
+    console.log('💾 Saving food to database (with base64 image)');
+    const newFood = await Database.createFood(foodToSave);
+    console.log('✅ Food saved with ID:', newFood._id);
     
     // Увеличиваем счетчик использования
-    Database.incrementUserUsage(req.userId, 'photos');
+    await Database.incrementUserUsage(req.userId, 'photos');
     
     // Обновляем streak (активность пользователя)
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const lastVisit = user.lastVisit ? new Date(user.lastVisit) : null;
@@ -783,7 +776,7 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
       maxStreak = 1;
     }
     
-    Database.updateUser(req.userId, {
+    await Database.updateUser(req.userId, {
       streak: newStreak,
       maxStreak: maxStreak,
       lastVisit: now.toISOString()
