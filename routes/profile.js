@@ -316,24 +316,24 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), checkFileSizeLim
       });
     }
 
-    // Получаем пользователя и удаляем старую аватарку
-    const user = await Database.getUserById(req.userId);
-    if (user && user.avatar && user.avatar.startsWith('/uploads/')) {
-      const oldAvatarPath = path.join(__dirname, '..', user.avatar);
-      if (fs.existsSync(oldAvatarPath)) {
-        try {
-          fs.unlinkSync(oldAvatarPath);
-        } catch (err) {
-          console.error('Error deleting old avatar:', err);
-        }
-      }
-    }
-
-    // Сохраняем путь к новой аватарке
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    // Читаем файл и сжимаем
+    const sharp = require('sharp');
+    const imageBuffer = fs.readFileSync(req.file.path);
     
-    // Обновляем пользователя
-    const updatedUser = await Database.updateUser(req.userId, { avatar: avatarUrl });
+    // Сжимаем аватар (200x200, качество 80)
+    const compressedBuffer = await sharp(imageBuffer)
+      .resize(200, 200, { fit: 'cover' })
+      .jpeg({ quality: 80, progressive: true })
+      .toBuffer();
+    
+    // Удаляем временный файл
+    fs.unlinkSync(req.file.path);
+    
+    // Обновляем пользователя с Buffer
+    const updatedUser = await Database.updateUser(req.userId, { 
+      avatar: compressedBuffer,
+      avatarContentType: 'image/jpeg'
+    });
     
     if (!updatedUser) {
       return res.status(404).json({
@@ -342,9 +342,12 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), checkFileSizeLim
       });
     }
     
+    // Возвращаем avatarUrl (виртуальное поле)
+    const userObject = updatedUser.toObject();
+    
     res.json({
       success: true,
-      avatar: avatarUrl,
+      avatar: userObject.avatarUrl,
       message: 'Аватарка успешно загружена'
     });
   } catch (error) {
@@ -368,52 +371,8 @@ router.delete('/', authMiddleware, async (req, res) => {
       });
     }
     
-    // Удаляем аватарку пользователя
-    if (user.avatar && user.avatar.startsWith('/uploads/')) {
-      const avatarPath = path.join(__dirname, '..', user.avatar);
-      if (fs.existsSync(avatarPath)) {
-        try {
-          fs.unlinkSync(avatarPath);
-          console.log(`🗑️ Удалена аватарка: ${avatarPath}`);
-        } catch (err) {
-          console.error('Ошибка удаления аватарки:', err);
-        }
-      }
-    }
-    
-    // Удаляем все фото блюд пользователя
-    const userFoods = await Database.getFoods(req.userId);
-    userFoods.forEach(food => {
-      if (food.imageUrl) {
-        const imagePath = path.join(__dirname, '..', food.imageUrl);
-        if (fs.existsSync(imagePath)) {
-          try {
-            fs.unlinkSync(imagePath);
-            console.log(`🗑️ Удалено фото блюда: ${imagePath}`);
-          } catch (err) {
-            console.error('Ошибка удаления фото блюда:', err);
-          }
-        }
-      }
-    });
-    
-    // Удаляем все фото рецептов пользователя
-    const userRecipes = (await Database.getRecipes()).filter(r => r.userId.toString() === req.userId);
-    userRecipes.forEach(recipe => {
-      if (recipe.imageUrl && recipe.imageUrl.startsWith('/uploads/')) {
-        const imagePath = path.join(__dirname, '..', recipe.imageUrl);
-        if (fs.existsSync(imagePath)) {
-          try {
-            fs.unlinkSync(imagePath);
-            console.log(`🗑️ Удалено фото рецепта: ${imagePath}`);
-          } catch (err) {
-            console.error('Ошибка удаления фото рецепта:', err);
-          }
-        }
-      }
-    });
-    
-    // Удаляем пользователя из базы (это также удалит все его данные)
+    // Изображения хранятся в MongoDB как Buffer, удаление файлов не требуется
+    // Удаляем пользователя из базы (это также удалит все его данные через каскадное удаление)
     const deleted = await Database.deleteUser(req.userId);
     
     console.log(`✅ Профиль пользователя ${req.userId} полностью удален`);

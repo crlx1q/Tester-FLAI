@@ -42,8 +42,8 @@ router.post('/chat', authMiddleware, checkMessageLimit, async (req, res) => {
     }
     
     // Получаем контекст пользователя
-    const user = Database.getUserById(req.userId);
-    const todayFoods = Database.getFoodsByDate(req.userId, new Date());
+    const user = await Database.getUserById(req.userId);
+    const todayFoods = await Database.getFoodsByDate(req.userId, new Date());
     
     // Формируем контекст для AI
     const context = {
@@ -74,7 +74,7 @@ router.post('/chat', authMiddleware, checkMessageLimit, async (req, res) => {
     const response = await chatWithAI(message, context);
     
     // Увеличиваем счетчик использования
-    Database.incrementUserUsage(req.userId, 'messages');
+    await Database.incrementUserUsage(req.userId, 'messages');
     
     // Обновляем streak (активность пользователя)
     const now = new Date();
@@ -105,7 +105,7 @@ router.post('/chat', authMiddleware, checkMessageLimit, async (req, res) => {
       maxStreak = 1;
     }
     
-    Database.updateUser(req.userId, {
+    await Database.updateUser(req.userId, {
       streak: newStreak,
       maxStreak: maxStreak,
       lastVisit: now.toISOString()
@@ -137,8 +137,8 @@ router.post('/chat-image', authMiddleware, checkMessageLimit, upload.single('ima
     }
     
     // Получаем контекст пользователя
-    const user = Database.getUserById(req.userId);
-    const todayFoods = Database.getFoodsByDate(req.userId, new Date());
+    const user = await Database.getUserById(req.userId);
+    const todayFoods = await Database.getFoodsByDate(req.userId, new Date());
     
     // Формируем контекст для AI
     const context = {
@@ -169,7 +169,7 @@ router.post('/chat-image', authMiddleware, checkMessageLimit, upload.single('ima
     const response = await chatWithAIImage(req.file.path, message, context);
     
     // Увеличиваем счетчик использования
-    Database.incrementUserUsage(req.userId, 'messages');
+    await Database.incrementUserUsage(req.userId, 'messages');
     
     // Обновляем streak (активность пользователя)
     const now = new Date();
@@ -200,7 +200,7 @@ router.post('/chat-image', authMiddleware, checkMessageLimit, upload.single('ima
       maxStreak = 1;
     }
     
-    Database.updateUser(req.userId, {
+    await Database.updateUser(req.userId, {
       streak: newStreak,
       maxStreak: maxStreak,
       lastVisit: now.toISOString()
@@ -229,8 +229,8 @@ router.post('/chat-image', authMiddleware, checkMessageLimit, upload.single('ima
 // AI дневная сводка (только для Pro)
 router.post('/daily-summary', authMiddleware, requirePro, async (req, res) => {
   try {
-    const user = Database.getUserById(req.userId);
-    const todayFoods = Database.getFoodsByDate(req.userId, new Date());
+    const user = await Database.getUserById(req.userId);
+    const todayFoods = await Database.getFoodsByDate(req.userId, new Date());
     
     // Подсчитываем общие показатели
     let totalCalories = 0;
