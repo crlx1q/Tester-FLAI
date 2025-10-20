@@ -82,6 +82,14 @@ recipeSchema.virtual('imageUrl').get(function() {
   return null;
 });
 
+// Виртуальное поле для автора рецепта
+recipeSchema.virtual('author', {
+  ref: 'User',
+  localField: 'userId',
+  foreignField: '_id',
+  justOne: true
+});
+
 // Включаем виртуальные поля в JSON
 recipeSchema.set('toJSON', { virtuals: true });
 recipeSchema.set('toObject', { virtuals: true });

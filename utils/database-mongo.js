@@ -223,7 +223,7 @@ class Database {
   }
   
   static async getRecipeById(id) {
-    return await Recipe.findById(id);
+    return await Recipe.findById(id).populate('author', 'name avatar avatarUrl subscription');
   }
   
   static async updateRecipe(id, updates) {

@@ -363,14 +363,18 @@ router.get('/', authMiddleware, async (req, res) => {
       const author = await Database.getUserById(recipe.userId);
       // Преобразуем Mongoose документ в объект с виртуальными полями
       const recipeObj = recipe.toObject ? recipe.toObject() : recipe;
+      const authorObj = author && author.toObject ? author.toObject() : author;
+      
       return {
         ...recipeObj,
         author: author ? {
           name: author.name || 'Пользователь',
+          avatar: authorObj?.avatarUrl || null, // Используем виртуальное поле avatarUrl!
           isVerified: false,
           isPro: author.isPro || false
         } : {
           name: 'Неизвестный пользователь',
+          avatar: null,
           isVerified: false,
           isPro: false
         }

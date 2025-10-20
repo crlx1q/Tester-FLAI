@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
-const Database = require('../utils/database');
+const Database = require('../utils/database-mongo');
 
 const router = express.Router();
 
@@ -280,22 +280,68 @@ router.post('/settings/update-version', checkAdminAuth, async (req, res) => {
   }
 });
 
-// Загрузить APK файл
-router.post('/upload-apk', checkAdminAuth, uploadApk.single('apk'), (req, res) => {
+// Загрузить APK файл с прогрессом
+router.post('/upload-apk', checkAdminAuth, (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: 'APK файл не загружен'
-      });
-    }
+    const busboy = require('busboy');
+    const bb = busboy({ headers: req.headers });
     
-    res.json({
-      success: true,
-      message: 'APK файл успешно загружен',
-      filename: req.file.filename,
-      path: '/apk/app-release.apk'
+    let totalBytes = 0;
+    let uploadedBytes = 0;
+    const apkPath = path.join(__dirname, '../apk/app-release.apk');
+    
+    // Получаем размер файла из заголовка
+    const contentLength = parseInt(req.headers['content-length'] || '0');
+    
+    bb.on('file', (fieldname, file, info) => {
+      const { filename, encoding, mimeType } = info;
+      
+      console.log(`📦 Начало загрузки APK: ${filename} (${(contentLength / 1024 / 1024).toFixed(2)} MB)`);
+      
+      // Создаем директорию если не существует
+      const apkDir = path.dirname(apkPath);
+      if (!fs.existsSync(apkDir)) {
+        fs.mkdirSync(apkDir, { recursive: true });
+      }
+      
+      const writeStream = fs.createWriteStream(apkPath);
+      
+      file.on('data', (data) => {
+        uploadedBytes += data.length;
+        const progress = Math.round((uploadedBytes / contentLength) * 100);
+        
+        // Логируем прогресс каждые 10%
+        if (progress % 10 === 0) {
+          console.log(`📊 Прогресс загрузки: ${progress}% (${(uploadedBytes / 1024 / 1024).toFixed(2)} MB)`);
+        }
+      });
+      
+      file.pipe(writeStream);
+      
+      writeStream.on('finish', () => {
+        console.log('✅ APK файл успешно загружен');
+      });
     });
+    
+    bb.on('finish', () => {
+      res.json({
+        success: true,
+        message: 'APK файл успешно загружен',
+        filename: 'app-release.apk',
+        path: '/apk/app-release.apk',
+        size: uploadedBytes
+      });
+    });
+    
+    bb.on('error', (error) => {
+      console.error('Upload error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Ошибка загрузки APK файла'
+      });
+    });
+    
+    req.pipe(bb);
   } catch (error) {
     console.error('Upload APK error:', error);
     res.status(500).json({
