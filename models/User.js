@@ -55,12 +55,22 @@ const userSchema = new mongoose.Schema({
   },
   goal: {
     type: String,
-    enum: ['lose_weight', 'gain_muscle', 'maintain_weight'],
     default: null
+  },
+  goalDescription: {
+    type: String,
+    default: null
+  },
+  targetWeight: {
+    type: Number,
+    default: null
+  },
+  waterTarget: {
+    type: Number,
+    default: 2000 // мл
   },
   gender: {
     type: String,
-    enum: ['male', 'female'],
     default: null
   },
   age: {
@@ -77,7 +87,6 @@ const userSchema = new mongoose.Schema({
   },
   activityLevel: {
     type: String,
-    enum: ['low', 'moderate', 'high'],
     default: null
   },
   allergies: [{

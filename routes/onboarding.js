@@ -94,7 +94,7 @@ ${allergies && allergies.length > 0 ? `- Аллергии: ${allergies.join(', '
     const aiPlan = JSON.parse(jsonMatch[0]);
     
     // Обновляем пользователя
-    const updatedUser = Database.updateUser(req.userId, {
+    const updatedUser = await Database.updateUser(req.userId, {
       age: parseInt(age),
       height: parseInt(height),
       weight: parseFloat(weight),
@@ -111,11 +111,12 @@ ${allergies && allergies.length > 0 ? `- Аллергии: ${allergies.join(', '
     });
     
     // Удаляем пароль из ответа
-    const { password, ...userWithoutPassword } = updatedUser;
+    const userObject = updatedUser.toObject();
+    delete userObject.password;
     
     res.json({
       success: true,
-      user: userWithoutPassword,
+      user: userObject,
       aiPlan: {
         dailyCalories: aiPlan.dailyCalories,
         macros: aiPlan.macros,

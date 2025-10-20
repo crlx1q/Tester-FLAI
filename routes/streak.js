@@ -5,9 +5,9 @@ const Database = require('../utils/database');
 const router = express.Router();
 
 // Записать ежедневный визит (для streak)
-router.post('/', authMiddleware, (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -46,7 +46,7 @@ router.post('/', authMiddleware, (req, res) => {
       maxStreak = 1;
     }
     
-    Database.updateUser(req.userId, {
+    await Database.updateUser(req.userId, {
       streak: newStreak,
       maxStreak: maxStreak,
       lastVisit: now.toISOString()

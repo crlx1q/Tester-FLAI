@@ -37,7 +37,6 @@ const recipeSchema = new mongoose.Schema({
   },
   difficulty: {
     type: String,
-    enum: ['Легко', 'Средне', 'Сложно'],
     default: 'Средне'
   },
   servings: {
@@ -50,7 +49,6 @@ const recipeSchema = new mongoose.Schema({
   },
   goal: {
     type: String,
-    enum: ['lose_weight', 'gain_muscle', 'maintain_weight'],
     default: null
   },
   allergies: [{
