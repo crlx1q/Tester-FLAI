@@ -6,6 +6,36 @@ const GEMINI_MODEL = 'gemini-2.0-flash-exp';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 /**
+ * Wrapper для axios запросов с retry логикой при 503 ошибках
+ */
+async function axiosWithRetry(config, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      if (attempt > 1) {
+        const delay = 2000 * attempt; // Увеличивающаяся задержка: 2s, 4s, 6s
+        console.log(`🔄 Повторная попытка ${attempt}/${maxRetries} через ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      const response = await axios(config);
+      return response; // Успех!
+      
+    } catch (error) {
+      const is503 = error.response?.status === 503;
+      const isLastAttempt = attempt === maxRetries;
+      
+      if (is503 && !isLastAttempt) {
+        console.log(`⚠️ Gemini API перегружен (503), попытка ${attempt}/${maxRetries}`);
+        continue; // Повторяем
+      }
+      
+      // Если это последняя попытка или не 503 - выбрасываем ошибку
+      throw error;
+    }
+  }
+}
+
+/**
  * Анализ текстового описания блюда через Gemini AI
  */
 async function analyzeTextDescription(description) {

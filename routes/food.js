@@ -455,13 +455,8 @@ router.post('/:id/favorite', authMiddleware, async (req, res) => {
       });
     }
     
-    // Проверяем, что блюдо принадлежит текущему пользователю
-    if (food.userId !== req.userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Нет доступа к этому блюду'
-      });
-    }
+    // Любой пользователь может добавить любое блюдо в свое избранное
+    // Убираем проверку владельца - это избранное, а не редактирование!
     
     const favoriteFood = await Database.addFavoriteFood(req.userId, {
       name: food.name,
