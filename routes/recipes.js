@@ -457,9 +457,14 @@ router.post('/generate', authMiddleware, checkRecipeLimit, upload.single('image'
     
     console.log('✅ Рецепт создан:', newRecipe._id);
     
+    // Преобразуем в объект с виртуальными полями
+    const recipeObject = newRecipe.toObject();
+    console.log('📝 Recipe name:', recipeObject.name);
+    console.log('🖼️ Recipe has imageUrl:', !!recipeObject.imageUrl);
+    
     res.json({
       success: true,
-      recipe: newRecipe
+      recipe: recipeObject
     });
   } catch (error) {
     console.error('Generate recipe error:', error);

@@ -97,9 +97,12 @@ router.post('/analyze', authMiddleware, upload.single('image'), checkFileSizeLim
     
     const newFood = await Database.createFood(foodData);
     
+    // Преобразуем в объект с виртуальными полями
+    const foodObject = newFood.toObject();
+    
     res.json({
       success: true,
-      food: newFood
+      food: foodObject
     });
   } catch (error) {
     console.error('Food analysis error:', error);
@@ -743,6 +746,10 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
     const newFood = await Database.createFood(foodToSave);
     console.log('✅ Food saved with ID:', newFood._id);
     
+    // Преобразуем в объект с виртуальными полями
+    const foodObject = newFood.toObject();
+    console.log('🖼️ Food has imageUrl:', !!foodObject.imageUrl);
+    
     // Увеличиваем счетчик использования
     await Database.incrementUserUsage(req.userId, 'photos');
     
@@ -784,7 +791,7 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
     
     res.json({ 
       success: true, 
-      food: newFood,
+      food: foodObject, // ✅ Объект с виртуальными полями!
       analysis: foodData
     });
     

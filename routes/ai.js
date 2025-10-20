@@ -125,7 +125,7 @@ router.post('/chat', authMiddleware, checkMessageLimit, async (req, res) => {
 });
 
 // AI Чат с изображением
-router.post('/chat-image', authMiddleware, checkMessageLimit, upload.single('image'), checkFileSizeLimit, compressImage, async (req, res) => {
+router.post('/chat-image', authMiddleware, checkMessageLimit, upload.single('image'), async (req, res) => {
   try {
     const { message, chatHistory } = req.body;
     
@@ -135,6 +135,18 @@ router.post('/chat-image', authMiddleware, checkMessageLimit, upload.single('ima
         message: 'Изображение не загружено'
       });
     }
+    
+    // Сжимаем изображение вручную
+    const sharp = require('sharp');
+    const fs = require('fs');
+    const imageBuffer = fs.readFileSync(req.file.path);
+    const compressedBuffer = await sharp(imageBuffer)
+      .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    
+    // Перезаписываем файл сжатым
+    fs.writeFileSync(req.file.path, compressedBuffer);
     
     // Получаем контекст пользователя
     const user = await Database.getUserById(req.userId);
