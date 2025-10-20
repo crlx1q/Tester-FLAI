@@ -60,18 +60,19 @@ router.post('/register', async (req, res) => {
     
     // Создание токена
     const token = jwt.sign(
-      { userId: newUser._id },
+      { userId: newUser._id.toString() },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
     
-    // Удаляем пароль из ответа
-    const { password: _, ...userWithoutPassword } = newUser;
+    // Удаляем пароль из ответа (конвертируем Mongoose документ в объект)
+    const userObject = newUser.toObject();
+    delete userObject.password;
     
     res.status(201).json({
       success: true,
       token,
-      user: userWithoutPassword
+      user: userObject
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -115,18 +116,19 @@ router.post('/login', async (req, res) => {
     
     // Создание токена
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id.toString() },
       process.env.JWT_SECRET,
       { expiresIn: '30d' }
     );
     
-    // Удаляем пароль из ответа
-    const { password: _, ...userWithoutPassword } = user;
+    // Удаляем пароль из ответа (конвертируем Mongoose документ в объект)
+    const userObject = user.toObject();
+    delete userObject.password;
     
     res.json({
       success: true,
       token,
-      user: userWithoutPassword
+      user: userObject
     });
   } catch (error) {
     console.error('Login error:', error);

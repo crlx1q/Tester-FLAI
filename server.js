@@ -15,10 +15,7 @@ const onboardingRoutes = require('./routes/onboarding');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
-const PORT = process.env.PORT || 8000;
-
-// Подключаемся к MongoDB Atlas
-connectDB();
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -51,9 +48,6 @@ app.use('/apk', express.static('apk', {
 
 app.use(express.static('public'));
 
-// MongoDB Atlas теперь используется вместо JSON файлов
-console.log('📦 Используется MongoDB Atlas для хранения данных');
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
@@ -78,7 +72,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 FoodLens AI Server запущен на порту ${PORT}`);
-  console.log(`📡 API доступен по адресу: http://localhost:${PORT}/api`);
-});
+// Запуск сервера с подключением к MongoDB
+const startServer = async () => {
+  try {
+    // Подключаемся к MongoDB Atlas
+    await connectDB();
+    
+    // Запускаем сервер только после успешного подключения к БД
+    app.listen(PORT, () => {
+      console.log(`🚀 FoodLens AI Server запущен на порту ${PORT}`);
+      console.log(`📡 API доступен по адресу: http://localhost:${PORT}/api`);
+    });
+  } catch (error) {
+    console.error('❌ Не удалось запустить сервер:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

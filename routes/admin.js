@@ -128,12 +128,13 @@ router.post('/users/:userId/subscription', checkAdminAuth, async (req, res) => {
       });
     }
     
-    const { password, ...userWithoutPassword } = updatedUser;
+    const userObject = updatedUser.toObject();
+    delete userObject.password;
     
     res.json({
       success: true,
       message: `Подписка ${subscriptionType} успешно ${subscriptionType === 'pro' ? 'выдана на ' + durationDays + ' дней' : 'установлена'}`,
-      user: userWithoutPassword
+      user: userObject
     });
   } catch (error) {
     console.error('Update subscription error:', error);

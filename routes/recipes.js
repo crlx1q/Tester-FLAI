@@ -351,16 +351,16 @@ const mockRecipes = [
 ];
 
 // Получить рецепты с фильтрами (общедоступные - все пользовательские + системные)
-router.get('/', authMiddleware, (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const { goal, allergies } = req.query;
     
     // Получаем ВСЕ рецепты пользователей (общедоступные)
-    const allUserRecipes = Database.getRecipes();
+    const allUserRecipes = await Database.getRecipes();
     
     // Добавляем информацию об авторе к каждому пользовательскому рецепту
-    const userRecipesWithAuthors = allUserRecipes.map(recipe => {
-      const author = Database.getUserById(recipe.userId);
+    const userRecipesWithAuthors = await Promise.all(allUserRecipes.map(async recipe => {
+      const author = await Database.getUserById(recipe.userId);
       return {
         ...recipe,
         author: author ? {
@@ -373,7 +373,7 @@ router.get('/', authMiddleware, (req, res) => {
           isPro: false
         }
       };
-    });
+    }));
     
     // Объединяем с системными рецептами
     let filteredRecipes = [...mockRecipes, ...userRecipesWithAuthors];
@@ -450,10 +450,10 @@ router.post('/generate', authMiddleware, checkRecipeLimit, upload.single('image'
       isFavorite: false
     };
     
-    const newRecipe = Database.createRecipe(recipeData);
+    const newRecipe = await Database.createRecipe(recipeData);
     
     // Увеличиваем счетчик использования
-    Database.incrementUserUsage(req.userId, 'recipes');
+    await Database.incrementUserUsage(req.userId, 'recipes');
     
     console.log('✅ Рецепт создан:', newRecipe._id);
     
@@ -471,9 +471,9 @@ router.post('/generate', authMiddleware, checkRecipeLimit, upload.single('image'
 });
 
 // Получить детали рецепта
-router.get('/:id', authMiddleware, (req, res) => {
+router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const recipe = Database.getRecipeById(req.params.id);
+    const recipe = await Database.getRecipeById(req.params.id);
     
     if (!recipe) {
       return res.status(404).json({
@@ -496,9 +496,9 @@ router.get('/:id', authMiddleware, (req, res) => {
 });
 
 // Обновить рецепт
-router.put('/:id', authMiddleware, (req, res) => {
+router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const recipe = Database.getRecipeById(req.params.id);
+    const recipe = await Database.getRecipeById(req.params.id);
     
     if (!recipe) {
       return res.status(404).json({
@@ -514,7 +514,7 @@ router.put('/:id', authMiddleware, (req, res) => {
       });
     }
     
-    const updatedRecipe = Database.updateRecipe(req.params.id, req.body);
+    const updatedRecipe = await Database.updateRecipe(req.params.id, req.body);
     
     res.json({
       success: true,
@@ -530,9 +530,9 @@ router.put('/:id', authMiddleware, (req, res) => {
 });
 
 // Удалить рецепт
-router.delete('/:id', authMiddleware, (req, res) => {
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
-    const recipe = Database.getRecipeById(req.params.id);
+    const recipe = await Database.getRecipeById(req.params.id);
     
     if (!recipe) {
       return res.status(404).json({
@@ -572,12 +572,12 @@ router.delete('/:id', authMiddleware, (req, res) => {
 });
 
 // Добавить рецепт в избранное
-router.post('/:id/favorite', authMiddleware, (req, res) => {
+router.post('/:id/favorite', authMiddleware, async (req, res) => {
   try {
     const recipeId = req.params.id;
     const userId = req.userId;
     
-    const user = Database.getUserById(userId);
+    const user = await Database.getUserById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -600,7 +600,7 @@ router.post('/:id/favorite', authMiddleware, (req, res) => {
     
     // Добавляем в избранное
     user.favoriteRecipes.push(recipeId);
-    Database.updateUser(userId, { favoriteRecipes: user.favoriteRecipes });
+    await Database.updateUser(userId, { favoriteRecipes: user.favoriteRecipes });
     
     res.json({
       success: true,
@@ -616,12 +616,12 @@ router.post('/:id/favorite', authMiddleware, (req, res) => {
 });
 
 // Удалить рецепт из избранного
-router.delete('/:id/favorite', authMiddleware, (req, res) => {
+router.delete('/:id/favorite', authMiddleware, async (req, res) => {
   try {
     const recipeId = req.params.id;
     const userId = req.userId;
     
-    const user = Database.getUserById(userId);
+    const user = await Database.getUserById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -635,7 +635,7 @@ router.delete('/:id/favorite', authMiddleware, (req, res) => {
     
     // Удаляем из избранного
     user.favoriteRecipes = user.favoriteRecipes.filter(id => id !== recipeId);
-    Database.updateUser(userId, { favoriteRecipes: user.favoriteRecipes });
+    await Database.updateUser(userId, { favoriteRecipes: user.favoriteRecipes });
     
     res.json({
       success: true,
@@ -651,9 +651,9 @@ router.delete('/:id/favorite', authMiddleware, (req, res) => {
 });
 
 // Получить избранные рецепты пользователя
-router.get('/favorites/my', authMiddleware, (req, res) => {
+router.get('/favorites/my', authMiddleware, async (req, res) => {
   try {
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     if (!user || !user.favoriteRecipes) {
       return res.json({
         success: true,
@@ -670,9 +670,9 @@ router.get('/favorites/my', authMiddleware, (req, res) => {
       
       // Если не нашли, ищем в пользовательских
       if (!recipe) {
-        recipe = Database.getRecipeById(recipeId);
+        recipe = await Database.getRecipeById(recipeId);
         if (recipe) {
-          const author = Database.getUserById(recipe.userId);
+          const author = await Database.getUserById(recipe.userId);
           recipe = {
             ...recipe,
             author: author ? {

@@ -54,11 +54,12 @@ router.get('/', authMiddleware, async (req, res) => {
       });
     }
     
-    const { password, ...userWithoutPassword } = user;
+    const userObject = user.toObject();
+    delete userObject.password;
     
     res.json({
       success: true,
-      user: userWithoutPassword
+      user: userObject
     });
   } catch (error) {
     console.error('Get profile error:', error);
@@ -88,11 +89,12 @@ router.put('/', authMiddleware, async (req, res) => {
       });
     }
     
-    const { password, ...userWithoutPassword } = updatedUser;
+    const userObject = updatedUser.toObject();
+    delete userObject.password;
     
     res.json({
       success: true,
-      user: userWithoutPassword
+      user: userObject
     });
   } catch (error) {
     console.error('Update profile error:', error);
@@ -125,7 +127,7 @@ router.post('/change-password', authMiddleware, async (req, res) => {
       });
     }
     
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     
     if (!user) {
       console.log('❌ Пользователь не найден:', req.userId);
@@ -173,7 +175,7 @@ router.post('/change-password', authMiddleware, async (req, res) => {
 });
 
 // Завершить онбординг
-router.post('/onboarding', authMiddleware, (req, res) => {
+router.post('/onboarding', authMiddleware, async (req, res) => {
   try {
     const { goal, gender, age, height, weight, activityLevel, allergies } = req.body;
     
@@ -221,13 +223,14 @@ router.post('/onboarding', authMiddleware, (req, res) => {
       onboardingCompleted: true
     };
     
-    const updatedUser = Database.updateUser(req.userId, updates);
+    const updatedUser = await Database.updateUser(req.userId, updates);
     
-    const { password, ...userWithoutPassword } = updatedUser;
+    const userObject = updatedUser.toObject();
+    delete userObject.password;
     
     res.json({
       success: true,
-      user: userWithoutPassword
+      user: userObject
     });
   } catch (error) {
     console.error('Onboarding error:', error);
