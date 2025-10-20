@@ -289,7 +289,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
     
     // Проверяем, что блюдо принадлежит текущему пользователю
-    if (food.userId !== req.userId) {
+    if (food.userId.toString() !== req.userId) {
       return res.status(403).json({
         success: false,
         message: 'Нет доступа к этому блюду'
@@ -343,7 +343,7 @@ router.put('/:id/update-with-image', authMiddleware, async (req, res) => {
     }
     
     // Проверяем, что блюдо принадлежит текущему пользователю
-    if (food.userId !== req.userId) {
+    if (!food.userId.equals(req.userId)) {
       return res.status(403).json({
         success: false,
         message: 'Нет доступа к этому блюду'
@@ -521,9 +521,10 @@ router.delete('/favorites/:id', authMiddleware, async (req, res) => {
 router.post('/favorites/:id/add-to-diary', authMiddleware, async (req, res) => {
   try {
     const favoriteFoods = await Database.getFavoriteFoods(req.userId);
-    const favoriteFood = favoriteFoods.find(f => f._id === req.params.id);
+    const favoriteFood = favoriteFoods.find(f => f._id.toString() === req.params.id);
     
     if (!favoriteFood) {
+      console.log(`❌ Избранное блюдо не найдено. ID: ${req.params.id}, Всего избранных: ${favoriteFoods.length}`);
       return res.status(404).json({
         success: false,
         message: 'Избранное блюдо не найдено'
@@ -547,12 +548,13 @@ router.post('/favorites/:id/add-to-diary', authMiddleware, async (req, res) => {
       mealType
     };
     
-    const newFood = Database.createFood(foodData);
+    const newFood = await Database.createFood(foodData);
+    const foodObject = newFood.toObject ? newFood.toObject() : newFood;
     
     res.json({
       success: true,
       message: 'Блюдо добавлено в дневник',
-      food: newFood
+      food: foodObject
     });
   } catch (error) {
     console.error('Add favorite to diary error:', error);
