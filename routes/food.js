@@ -311,12 +311,15 @@ router.put('/:id', authMiddleware, async (req, res) => {
       healthScore
     });
     
-    console.log('✅ Блюдо обновлено:', updatedFood);
+    console.log('✅ Блюдо обновлено:', updatedFood._id);
+    
+    // Преобразуем в объект с виртуальными полями
+    const foodObject = updatedFood.toObject ? updatedFood.toObject() : updatedFood;
     
     res.json({
       success: true,
       message: 'Блюдо успешно обновлено',
-      food: updatedFood
+      food: foodObject
     });
   } catch (error) {
     console.error('Update food error:', error);
@@ -375,19 +378,22 @@ router.put('/:id/update-with-image', authMiddleware, async (req, res) => {
     console.log('📊 AI Analysis Result:', JSON.stringify(foodData, null, 2));
     
     // Обновляем блюдо
-    const updatedFood = Database.updateFood(req.params.id, {
+    const updatedFood = await Database.updateFood(req.params.id, {
       name: foodData.name || newName,
       calories: foodData.calories || 0,
       macros: foodData.macros || { protein: 0, fat: 0, carbs: 0 },
       healthScore: foodData.healthScore !== undefined ? foodData.healthScore : 50
     });
     
-    console.log('✅ Блюдо обновлено:', updatedFood);
+    console.log('✅ Блюдо обновлено:', updatedFood._id);
+    
+    // Преобразуем в объект с виртуальными полями
+    const foodObject = updatedFood.toObject ? updatedFood.toObject() : updatedFood;
     
     res.json({
       success: true,
       message: 'Блюдо успешно обновлено с учетом фото',
-      food: updatedFood,
+      food: foodObject,
       analysis: foodData
     });
     
@@ -422,12 +428,11 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     
     // Изображения хранятся в MongoDB как Buffer, удаление файлов не требуется
     
-    const deletedFood = await Database.deleteFood(req.params.id);
+    await Database.deleteFood(req.params.id);
     
     res.json({
       success: true,
-      message: 'Блюдо успешно удалено',
-      food: deletedFood
+      message: 'Блюдо успешно удалено'
     });
   } catch (error) {
     console.error('Delete food error:', error);
@@ -483,9 +488,12 @@ router.get('/favorites/list', authMiddleware, async (req, res) => {
   try {
     const favoriteFoods = await Database.getFavoriteFoods(req.userId);
     
+    // Преобразуем Mongoose документы в объекты с виртуальными полями
+    const foodsWithImages = favoriteFoods.map(food => food.toObject ? food.toObject() : food);
+    
     res.json({
       success: true,
-      favoriteFoods
+      favoriteFoods: foodsWithImages
     });
   } catch (error) {
     console.error('Get favorite foods error:', error);
@@ -499,19 +507,11 @@ router.get('/favorites/list', authMiddleware, async (req, res) => {
 // Удалить блюдо из избранного
 router.delete('/favorites/:id', authMiddleware, async (req, res) => {
   try {
-    const deletedFood = await Database.removeFavoriteFood(req.userId, req.params.id);
-    
-    if (!deletedFood) {
-      return res.status(404).json({
-        success: false,
-        message: 'Избранное блюдо не найдено'
-      });
-    }
+    await Database.removeFavoriteFood(req.userId, req.params.id);
     
     res.json({
       success: true,
-      message: 'Блюдо удалено из избранного',
-      food: deletedFood
+      message: 'Блюдо удалено из избранного'
     });
   } catch (error) {
     console.error('Remove from favorites error:', error);
@@ -704,11 +704,14 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
       ? image.split('base64,')[1] 
       : image;
     
+    console.log(`📸 Получено изображение, размер base64: ${(base64Data.length / 1024).toFixed(2)} KB`);
+    
     // Проверяем размер для free пользователей
     try {
       checkBase64SizeLimit(req.userId, base64Data);
     } catch (error) {
       if (error.statusCode === 413) {
+        console.log(`❌ Изображение слишком большое: ${error.fileSize}`);
         return res.status(413).json({
           success: false,
           message: error.message,

@@ -489,9 +489,12 @@ router.get('/:id', authMiddleware, async (req, res) => {
       });
     }
     
+    // Преобразуем в объект с виртуальными полями
+    const recipeObject = recipe.toObject ? recipe.toObject() : recipe;
+    
     res.json({
       success: true,
-      recipe
+      recipe: recipeObject
     });
   } catch (error) {
     console.error('Get recipe details error:', error);
@@ -523,9 +526,12 @@ router.put('/:id', authMiddleware, async (req, res) => {
     
     const updatedRecipe = await Database.updateRecipe(req.params.id, req.body);
     
+    // Преобразуем в объект с виртуальными полями
+    const recipeObject = updatedRecipe.toObject ? updatedRecipe.toObject() : updatedRecipe;
+    
     res.json({
       success: true,
-      recipe: updatedRecipe
+      recipe: recipeObject
     });
   } catch (error) {
     console.error('Update recipe error:', error);
@@ -672,9 +678,11 @@ router.get('/favorites/my', authMiddleware, async (req, res) => {
       if (!recipe) {
         recipe = await Database.getRecipeById(recipeId);
         if (recipe) {
-          const author = await Database.getUserById(recipe.userId);
+          // Преобразуем Mongoose документ в объект
+          const recipeObj = recipe.toObject ? recipe.toObject() : recipe;
+          const author = await Database.getUserById(recipeObj.userId);
           recipe = {
-            ...recipe,
+            ...recipeObj,
             author: author ? {
               name: author.name || 'Пользователь',
               isVerified: false,
