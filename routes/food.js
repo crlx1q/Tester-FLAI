@@ -370,6 +370,9 @@ router.put('/:id/update-with-image', authMiddleware, async (req, res) => {
       ? image.split('base64,')[1] 
       : image;
     
+    console.log('📷 Размер изображения base64:', base64Data.length, 'символов');
+    console.log('📷 Первые 50 символов base64:', base64Data.substring(0, 50));
+    
     const { analyzeImageFoodWithName } = require('../utils/ai');
     
     // Анализируем через Gemini Vision с учетом нового названия

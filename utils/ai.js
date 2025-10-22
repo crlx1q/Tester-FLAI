@@ -368,6 +368,12 @@ async function generateRecipe(dishName, imageBase64 = null) {
  * Анализ изображения блюда с учетом нового названия через Gemini Vision
  */
 async function analyzeImageFoodWithName(imageBase64, newName) {
+  console.log('🖼️ analyzeImageFoodWithName вызван:', {
+    newName,
+    imageBase64Length: imageBase64 ? imageBase64.length : 0,
+    imageBase64Preview: imageBase64 ? imageBase64.substring(0, 100) + '...' : 'НЕТ ДАННЫХ'
+  });
+  
   const prompt = `Ты профессиональный диетолог и эксперт по питанию. Пользователь указал, что на изображении "${newName}". Проанализируй изображение и рассчитай точные данные.
 
 ИНСТРУКЦИИ:
@@ -408,30 +414,40 @@ async function analyzeImageFoodWithName(imageBase64, newName) {
 - 61-100: Полезная еда (овощи, фрукты, нежирное мясо, каши, рыба)`;
 
   try {
+    const requestData = {
+      contents: [{
+        parts: [
+          {
+            text: prompt
+          },
+          {
+            inline_data: {
+              mime_type: "image/jpeg",
+              data: imageBase64
+            }
+          }
+        ]
+      }],
+      generationConfig: {
+        temperature: 0.4,
+        topK: 32,
+        topP: 1,
+        maxOutputTokens: 2048,
+        responseMimeType: 'application/json'
+      }
+    };
+    
+    console.log('📤 Gemini Vision API запрос (analyzeImageFoodWithName):', {
+      promptLength: prompt.length,
+      imageDataLength: imageBase64 ? imageBase64.length : 0,
+      hasImage: !!imageBase64,
+      partsCount: requestData.contents[0].parts.length,
+      hasBothParts: requestData.contents[0].parts.length === 2
+    });
+    
     const response = await axios.post(
       `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
-      {
-        contents: [{
-          parts: [
-            {
-              text: prompt
-            },
-            {
-              inline_data: {
-                mime_type: "image/jpeg",
-                data: imageBase64
-              }
-            }
-          ]
-        }],
-        generationConfig: {
-          temperature: 0.4,
-          topK: 32,
-          topP: 1,
-          maxOutputTokens: 2048,
-          responseMimeType: 'application/json'
-        }
-      },
+      requestData,
       {
         headers: {
           'Content-Type': 'application/json',
@@ -440,6 +456,7 @@ async function analyzeImageFoodWithName(imageBase64, newName) {
       }
     );
 
+    console.log('✅ Получен ответ от Gemini Vision API');
     const text = response.data.candidates[0].content.parts[0].text;
     
     // Пробуем распарсить напрямую
