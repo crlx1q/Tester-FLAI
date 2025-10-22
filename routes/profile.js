@@ -54,8 +54,27 @@ router.get('/', authMiddleware, async (req, res) => {
       });
     }
     
+    // Проверяем подписку и обновляем если истекла
+    if (user.subscriptionType === 'pro' && user.subscriptionExpiresAt) {
+      const expiresAt = new Date(user.subscriptionExpiresAt);
+      const now = new Date();
+      if (now > expiresAt) {
+        await Database.updateUserSubscription(user._id, 'free', null);
+        // Обновляем данные пользователя
+        user.subscriptionType = 'free';
+        user.isPro = false;
+        user.subscriptionExpiresAt = null;
+      }
+    }
+    
     const userObject = user.toObject();
     delete userObject.password;
+    
+    // Добавляем оставшиеся дни подписки
+    if (userObject.subscriptionType === 'pro' && userObject.subscriptionExpiresAt) {
+      const StartupCheckService = require('../services/startup-check');
+      userObject.subscriptionRemainingDays = StartupCheckService.calculateRemainingDays(userObject.subscriptionExpiresAt);
+    }
     
     res.json({
       success: true,
@@ -257,6 +276,7 @@ router.get('/limits', authMiddleware, async (req, res) => {
     const subscriptionType = user.subscriptionType || 'free';
     let isPro = subscriptionType === 'pro';
     let subscriptionExpiresAt = user.subscriptionExpiresAt;
+    let remainingDays = 0;
     
     if (isPro && subscriptionExpiresAt) {
       const expiresAt = new Date(subscriptionExpiresAt);
@@ -265,6 +285,10 @@ router.get('/limits', authMiddleware, async (req, res) => {
         await Database.updateUserSubscription(user._id, 'free', null);
         isPro = false;
         subscriptionExpiresAt = null;
+      } else {
+        // Вычисляем оставшиеся дни
+        const StartupCheckService = require('../services/startup-check');
+        remainingDays = StartupCheckService.calculateRemainingDays(subscriptionExpiresAt);
       }
     }
     
@@ -276,7 +300,8 @@ router.get('/limits', authMiddleware, async (req, res) => {
       subscription: {
         type: isPro ? 'pro' : 'free',
         isPro,
-        expiresAt: subscriptionExpiresAt
+        expiresAt: subscriptionExpiresAt,
+        remainingDays: remainingDays
       },
       usage: {
         photos: {

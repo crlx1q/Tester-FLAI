@@ -667,12 +667,10 @@
                 ? { photos: 50, messages: 100, recipes: 30 } 
                 : { photos: 2, messages: 10, recipes: 1 };
             
-            // Calculate days remaining
+            // Calculate days remaining (используем поле с сервера для единообразия)
             let daysRemainingText = '';
             if (isPro && user.subscriptionExpiresAt) {
-                const now = new Date();
-                const endsAt = new Date(user.subscriptionExpiresAt);
-                const daysRemaining = Math.ceil((endsAt - now) / (1000 * 60 * 60 * 24));
+                const daysRemaining = user.subscriptionRemainingDays || 0;
                 if (daysRemaining > 0) {
                     daysRemainingText = `<p class="text-xs text-orange-400 mt-1"><i data-lucide="clock" class="w-3 h-3 inline"></i> Осталось: ${daysRemaining} дн.</p>`;
                 } else {

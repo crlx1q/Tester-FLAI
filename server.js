@@ -92,6 +92,14 @@ const startServer = async () => {
       console.error('⚠️ Ошибка загрузки Gemini API ключа:', error.message);
     }
     
+    // Проверяем и обновляем streak и подписки всех пользователей
+    try {
+      const StartupCheckService = require('./services/startup-check');
+      await StartupCheckService.runAllChecks();
+    } catch (error) {
+      console.error('⚠️ Ошибка проверки данных пользователей:', error.message);
+    }
+    
     // Запускаем сервер только после успешного подключения к БД
     app.listen(PORT, () => {
       console.log(`🚀 FoodLens AI Server запущен на порту ${PORT}`);

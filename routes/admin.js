@@ -76,10 +76,19 @@ router.post('/auth', (req, res) => {
 router.get('/users', checkAdminAuth, async (req, res) => {
   try {
     const users = await Database.getAllUsersForAdmin();
+    const StartupCheckService = require('../services/startup-check');
     
     // Преобразуем Mongoose документы в обычные объекты
     const usersData = users.map(user => {
       const userObj = user.toObject ? user.toObject() : user;
+      
+      // Добавляем оставшиеся дни подписки
+      if (userObj.subscriptionType === 'pro' && userObj.subscriptionExpiresAt) {
+        userObj.subscriptionRemainingDays = StartupCheckService.calculateRemainingDays(userObj.subscriptionExpiresAt);
+      } else {
+        userObj.subscriptionRemainingDays = 0;
+      }
+      
       return userObj;
     });
     
