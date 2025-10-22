@@ -15,9 +15,9 @@ const LIMITS = {
 };
 
 // Middleware для проверки лимита фотографий
-const checkPhotoLimit = (req, res, next) => {
+const checkPhotoLimit = async (req, res, next) => {
   try {
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -34,14 +34,14 @@ const checkPhotoLimit = (req, res, next) => {
       const now = new Date();
       if (now > expiresAt) {
         // Подписка истекла, переводим на free
-        Database.updateUserSubscription(user._id, 'free', null);
+        await Database.updateUserSubscription(user._id, 'free', null);
         user.subscriptionType = 'free';
         user.isPro = false;
       }
     }
     
     const limit = LIMITS[user.subscriptionType === 'pro' ? 'pro' : 'free'].photos;
-    const usage = Database.getUserUsage(req.userId);
+    const usage = await Database.getUserUsage(req.userId);
     
     if (usage.photosCount >= limit) {
       return res.status(403).json({
@@ -73,9 +73,9 @@ const checkPhotoLimit = (req, res, next) => {
 };
 
 // Middleware для проверки лимита сообщений
-const checkMessageLimit = (req, res, next) => {
+const checkMessageLimit = async (req, res, next) => {
   try {
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -89,14 +89,14 @@ const checkMessageLimit = (req, res, next) => {
       const expiresAt = new Date(user.subscriptionExpiresAt);
       const now = new Date();
       if (now > expiresAt) {
-        Database.updateUserSubscription(user._id, 'free', null);
+        await Database.updateUserSubscription(user._id, 'free', null);
         user.subscriptionType = 'free';
         user.isPro = false;
       }
     }
     
     const limit = LIMITS[user.subscriptionType === 'pro' ? 'pro' : 'free'].messages;
-    const usage = Database.getUserUsage(req.userId);
+    const usage = await Database.getUserUsage(req.userId);
     
     if (usage.messagesCount >= limit) {
       return res.status(403).json({
@@ -127,9 +127,9 @@ const checkMessageLimit = (req, res, next) => {
 };
 
 // Middleware для проверки лимита рецептов
-const checkRecipeLimit = (req, res, next) => {
+const checkRecipeLimit = async (req, res, next) => {
   try {
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -143,14 +143,14 @@ const checkRecipeLimit = (req, res, next) => {
       const expiresAt = new Date(user.subscriptionExpiresAt);
       const now = new Date();
       if (now > expiresAt) {
-        Database.updateUserSubscription(user._id, 'free', null);
+        await Database.updateUserSubscription(user._id, 'free', null);
         user.subscriptionType = 'free';
         user.isPro = false;
       }
     }
     
     const limit = LIMITS[user.subscriptionType === 'pro' ? 'pro' : 'free'].recipes;
-    const usage = Database.getUserUsage(req.userId);
+    const usage = await Database.getUserUsage(req.userId);
     
     if (usage.recipesCount >= limit) {
       return res.status(403).json({
@@ -181,9 +181,9 @@ const checkRecipeLimit = (req, res, next) => {
 };
 
 // Middleware для проверки Pro подписки
-const requirePro = (req, res, next) => {
+const requirePro = async (req, res, next) => {
   try {
-    const user = Database.getUserById(req.userId);
+    const user = await Database.getUserById(req.userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -197,7 +197,7 @@ const requirePro = (req, res, next) => {
       const expiresAt = new Date(user.subscriptionExpiresAt);
       const now = new Date();
       if (now > expiresAt) {
-        Database.updateUserSubscription(user._id, 'free', null);
+        await Database.updateUserSubscription(user._id, 'free', null);
         return res.status(403).json({
           success: false,
           message: 'Эта функция доступна только для Pro пользователей. Ваша подписка истекла.',
