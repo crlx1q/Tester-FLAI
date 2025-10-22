@@ -2,7 +2,7 @@ const axios = require('axios');
 
 // Используем те же переменные что и в ai-service.js
 const GEMINI_API_KEY = process.env.AI_API_KEY;
-const GEMINI_MODEL = 'gemini-2.0-flash-exp';
+const GEMINI_MODEL = 'gemini-2.5-flash-exp'; // Gemini 2.5 Flash Experimental (Latest)
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 /**

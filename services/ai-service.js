@@ -13,7 +13,7 @@ async function analyzeFood(imagePath, user) {
     const provider = process.env.AI_PROVIDER || 'gemini';
     
     if (provider === 'gemini') {
-      // Интеграция с Google Gemini 2.5 Flash
+      // Интеграция с Google Gemini 2.5 Flash Experimental
       const imageBase64 = fs.readFileSync(imagePath, { encoding: 'base64' });
       
       const response = await axios.post(
@@ -186,9 +186,9 @@ ${context.todayFoods.length > 0 ? context.todayFoods.map(f => `- ${f.name}: ${f.
         parts: [{ text: message }]
       });
       
-      // Gemini API
+      // Gemini 2.5 Flash Experimental API
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.AI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-exp:generateContent?key=${process.env.AI_API_KEY}`,
         {
           systemInstruction: {
             parts: [{ text: systemPrompt }]
@@ -316,8 +316,9 @@ async function chatWithAIImage(imagePath, message, context) {
     const imageBase64 = fs.readFileSync(imagePath, { encoding: 'base64' });
     
     if (provider === 'gemini') {
+      // Gemini 2.5 Flash Experimental with Vision
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.AI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-exp:generateContent?key=${process.env.AI_API_KEY}`,
         {
           systemInstruction: {
             parts: [{ text: systemPrompt }]

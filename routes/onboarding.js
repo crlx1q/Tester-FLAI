@@ -59,9 +59,9 @@ ${allergies && allergies.length > 0 ? `- Аллергии: ${allergies.join(', '
   "goalDescription": "полное описание цели (1-2 предложения)"
 }`;
 
-    // Запрос к AI (используем Gemini 2.0 Flash как в остальном проекте)
+    // Запрос к AI (используем Gemini 2.5 Flash Experimental как в остальном проекте)
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.AI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-exp:generateContent?key=${process.env.AI_API_KEY}`,
       {
         systemInstruction: {
           parts: [{ text: 'Ты профессиональный диетолог и фитнес-тренер. Отвечай ТОЛЬКО в формате JSON.' }]
