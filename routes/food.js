@@ -17,6 +17,20 @@ function getMealTypeByHour(hour) {
   return 'Ночной перекус';
 }
 
+// Получить локальный час из запроса или использовать серверное время
+function getLocalHour(req) {
+  // Проверяем query параметры (для multipart форм)
+  if (req.query && req.query.localHour !== undefined) {
+    return parseInt(req.query.localHour);
+  }
+  // Проверяем body (для JSON запросов)
+  if (req.body && req.body.localHour !== undefined) {
+    return parseInt(req.body.localHour);
+  }
+  // Иначе используем серверное время (UTC)
+  return new Date().getHours();
+}
+
 // Настройка загрузки файлов
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -74,8 +88,8 @@ router.post('/analyze', authMiddleware, upload.single('image'), checkFileSizeLim
     // Анализируем изображение через AI
     const analysis = await analyzeFood(req.file.path, user);
     
-    // Определяем тип приема пищи по времени
-    const hour = new Date().getHours();
+    // Определяем тип приема пищи по времени (используем локальное время клиента)
+    const hour = getLocalHour(req);
     const mealType = getMealTypeByHour(hour);
     
     // Читаем файл и конвертируем в Buffer для MongoDB
@@ -557,8 +571,8 @@ router.post('/favorites/:id/add-to-diary', authMiddleware, async (req, res) => {
       });
     }
     
-    // Определяем тип приема пищи по времени
-    const hour = new Date().getHours();
+    // Определяем тип приема пищи по времени (используем локальное время клиента)
+    const hour = getLocalHour(req);
     const mealType = getMealTypeByHour(hour);
     
     // Создаем новое блюдо в дневнике
@@ -636,8 +650,8 @@ router.post('/analyze-description', authMiddleware, async (req, res) => {
     // Анализируем через Gemini AI
     const foodData = await analyzeTextDescription(description);
     
-    // Определяем тип приема пищи по времени
-    const hour = new Date().getHours();
+    // Определяем тип приема пищи по времени (используем локальное время клиента)
+    const hour = getLocalHour(req);
     const mealType = getMealTypeByHour(hour);
     
     // Добавляем блюдо в дневник
@@ -749,8 +763,8 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
     
     console.log('📊 AI Analysis Result:', foodData);
     
-    // Определяем тип приема пищи по времени
-    const hour = new Date().getHours();
+    // Определяем тип приема пищи по времени (используем локальное время клиента)
+    const hour = getLocalHour(req);
     const mealType = getMealTypeByHour(hour);
     
     // Добавляем блюдо в дневник (БЕЗ эмодзи, только название)
