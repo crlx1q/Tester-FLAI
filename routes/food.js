@@ -333,7 +333,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 // Обновить блюдо с фото и новым названием через AI
 router.put('/:id/update-with-image', authMiddleware, async (req, res) => {
   try {
-    const food = Database.getFoodById(req.params.id);
+    const food = await Database.getFoodById(req.params.id);
     
     if (!food) {
       return res.status(404).json({
