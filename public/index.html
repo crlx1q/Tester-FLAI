@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodLens AI - Ваш личный AI-нутрициолог</title>
+    <meta name="description" content="FoodLens AI - умный диетолог в кармане. Сканируйте еду, отслеживайте калории, получайте персональные рекомендации от AI.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-orange: #FF8A5B;
+            --primary-pink: #FF5A82;
+            --accent-red: #FF706E;
+            --dark-gray: #1F2937;
+            --light-gray: #6B7280;
+            --bg-light: #F9FAFB;
+        }
+
+        body {
+            font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #F9FAFB 0%, #FFFFFF 100%);
+            color: var(--dark-gray);
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: linear-gradient(135deg, var(--primary-orange), var(--primary-pink));
+            border-radius: 50%;
+            top: -300px;
+            right: -200px;
+            opacity: 0.1;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(225deg, var(--primary-pink), var(--accent-red));
+            border-radius: 50%;
+            bottom: -200px;
+            left: -100px;
+            opacity: 0.1;
+            animation: float 15s ease-in-out infinite reverse;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(180deg); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-content {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        .logo-circle {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, var(--primary-orange), var(--primary-pink));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 40px;
+            box-shadow: 0 20px 60px rgba(255, 138, 91, 0.3);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 20px 60px rgba(255, 138, 91, 0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 25px 70px rgba(255, 138, 91, 0.4); }
+        }
+
+        .logo-circle svg {
+            width: 60px;
+            height: 60px;
+            fill: white;
+        }
+
+        h1 {
+            font-size: 64px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary-orange), var(--primary-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+
+        .tagline {
+            font-size: 24px;
+            color: var(--light-gray);
+            font-weight: 500;
+            margin-bottom: 40px;
+        }
+
+        .description {
+            font-size: 18px;
+            color: var(--dark-gray);
+            max-width: 700px;
+            margin: 0 auto 50px;
+            line-height: 1.7;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, var(--primary-orange), var(--primary-pink));
+            color: white;
+            padding: 20px 50px;
+            border-radius: 100px;
+            font-size: 18px;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 10px 40px rgba(255, 138, 91, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            border: none;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(255, 138, 91, 0.4);
+        }
+
+        .download-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .download-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: white;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 100px 20px;
+            background: white;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: var(--dark-gray);
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 18px;
+            color: var(--light-gray);
+            margin-bottom: 80px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, rgba(255, 138, 91, 0.05), rgba(255, 90, 130, 0.05));
+            padding: 40px;
+            border-radius: 24px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary-orange);
+            box-shadow: 0 20px 60px rgba(255, 138, 91, 0.15);
+        }
+
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--primary-orange), var(--primary-pink));
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+
+        .feature-icon svg {
+            width: 32px;
+            height: 32px;
+            fill: white;
+        }
+
+        .feature-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--dark-gray);
+        }
+
+        .feature-description {
+            font-size: 16px;
+            color: var(--light-gray);
+            line-height: 1.6;
+        }
+
+        /* Stats Section */
+        .stats {
+            padding: 80px 20px;
+            background: linear-gradient(135deg, var(--primary-orange), var(--primary-pink));
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .stat-item p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 20px;
+            text-align: center;
+            background: var(--dark-gray);
+            color: white;
+        }
+
+        footer p {
+            opacity: 0.8;
+            font-size: 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 40px;
+            }
+
+            .tagline {
+                font-size: 18px;
+            }
+
+            .description {
+                font-size: 16px;
+            }
+
+            .section-title {
+                font-size: 36px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .logo-circle {
+                width: 100px;
+                height: 100px;
+            }
+
+            .logo-circle svg {
+                width: 50px;
+                height: 50px;
+            }
+        }
+
+        /* Loading animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.8s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content fade-in-up">
+                <div class="logo-circle">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>
+                    </svg>
+                </div>
+                
+                <h1>FoodLens AI</h1>
+                <p class="tagline">Ваш личный AI-нутрициолог в кармане</p>
+                
+                <p class="description">
+                    Революционное приложение для контроля питания с искусственным интеллектом. 
+                    Просто сфотографируйте еду — AI мгновенно рассчитает калории, макросы и даст персональные рекомендации.
+                </p>
+                
+                <a href="/apk/app-release.apk" class="download-btn" download>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/>
+                    </svg>
+                    Скачать приложение
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Возможности приложения</h2>
+            <p class="section-subtitle">Всё, что нужно для здорового питания и достижения ваших целей</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M21 6h-2.64l1.14-3.14L17.15 2l-1.46 4H3v2l2 6-2 6v2h18v-2l-2-6 2-6V6zm-5 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">AI-анализ еды</h3>
+                    <p class="feature-description">
+                        Сфотографируйте блюдо, и наш AI мгновенно определит все ингредиенты, 
+                        калорийность и полный состав нутриентов с высокой точностью.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Голосовой ввод</h3>
+                    <p class="feature-description">
+                        Просто скажите, что вы съели — AI распознает речь и автоматически 
+                        добавит блюдо в ваш дневник питания.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Персональный AI-чат</h3>
+                    <p class="feature-description">
+                        Общайтесь с умным AI-нутрициологом 24/7. Получайте ответы на вопросы 
+                        о питании и персональные рекомендации.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Дневник питания</h3>
+                    <p class="feature-description">
+                        Отслеживайте все приёмы пищи, калории и макронутриенты. 
+                        Визуальные графики помогут контролировать прогресс каждый день.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M12.36 6l.4 2H18v6h-3.36l-.4-2H7V6h5.36M14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6L14 4z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">База рецептов</h3>
+                    <p class="feature-description">
+                        Огромная коллекция здоровых рецептов с фильтрами по калориям, 
+                        времени приготовления и типу блюда.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Персонализация</h3>
+                    <p class="feature-description">
+                        Индивидуальные нормы калорий и макросов, рассчитанные на основе 
+                        ваших целей, возраста, веса и уровня активности.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Статистика и графики</h3>
+                    <p class="feature-description">
+                        Красивые графики прогресса, отслеживание веса, анализ потребления 
+                        воды и подробная статистика по всем показателям.
+                    </p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Избранное</h3>
+                    <p class="feature-description">
+                        Сохраняйте часто употребляемые блюда в избранное для быстрого 
+                        добавления в дневник питания одним нажатием.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h3>AI</h3>
+                    <p>Мощный нейросетевой анализ</p>
+                </div>
+                <div class="stat-item">
+                    <h3>PRO</h3>
+                    <p>Премиум подписка</p>
+                </div>
+                <div class="stat-item">
+                    <h3>24/7</h3>
+                    <p>Поддержка AI</p>
+                </div>
+                <div class="stat-item">
+                    <h3>∞</h3>
+                    <p>Возможности</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>© 2025 FoodLens AI. Умный диетолог в кармане.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Плавная прокрутка
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Анимация при прокрутке
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 0.8s ease-out';
+                    entry.target.style.opacity = '1';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.style.opacity = '0';
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>
+
