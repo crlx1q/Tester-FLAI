@@ -9,6 +9,14 @@ const { analyzeFood } = require('../services/ai-service');
 
 const router = express.Router();
 
+// Утилита для определения типа приема пищи по времени
+function getMealTypeByHour(hour) {
+  if (hour >= 6 && hour < 12) return 'Завтрак';
+  if (hour >= 12 && hour < 16) return 'Обед';
+  if (hour >= 16 && hour < 21) return 'Ужин';
+  return 'Ночной перекус';
+}
+
 // Настройка загрузки файлов
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -68,10 +76,7 @@ router.post('/analyze', authMiddleware, upload.single('image'), checkFileSizeLim
     
     // Определяем тип приема пищи по времени
     const hour = new Date().getHours();
-    let mealType = 'Перекус';
-    if (hour >= 6 && hour < 11) mealType = 'Завтрак';
-    else if (hour >= 11 && hour < 16) mealType = 'Обед';
-    else if (hour >= 16 && hour < 22) mealType = 'Ужин';
+    const mealType = getMealTypeByHour(hour);
     
     // Читаем файл и конвертируем в Buffer для MongoDB
     const fs = require('fs');
@@ -554,10 +559,7 @@ router.post('/favorites/:id/add-to-diary', authMiddleware, async (req, res) => {
     
     // Определяем тип приема пищи по времени
     const hour = new Date().getHours();
-    let mealType = 'Перекус';
-    if (hour >= 6 && hour < 11) mealType = 'Завтрак';
-    else if (hour >= 11 && hour < 16) mealType = 'Обед';
-    else if (hour >= 16 && hour < 22) mealType = 'Ужин';
+    const mealType = getMealTypeByHour(hour);
     
     // Создаем новое блюдо в дневнике
     const foodData = {
@@ -636,10 +638,7 @@ router.post('/analyze-description', authMiddleware, async (req, res) => {
     
     // Определяем тип приема пищи по времени
     const hour = new Date().getHours();
-    let mealType = 'Перекус';
-    if (hour >= 6 && hour < 11) mealType = 'Завтрак';
-    else if (hour >= 11 && hour < 16) mealType = 'Обед';
-    else if (hour >= 16 && hour < 22) mealType = 'Ужин';
+    const mealType = getMealTypeByHour(hour);
     
     // Добавляем блюдо в дневник
     const emoji = foodData.emoji || '🍽️';
@@ -752,10 +751,7 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
     
     // Определяем тип приема пищи по времени
     const hour = new Date().getHours();
-    let mealType = 'Перекус';
-    if (hour >= 6 && hour < 11) mealType = 'Завтрак';
-    else if (hour >= 11 && hour < 16) mealType = 'Обед';
-    else if (hour >= 16 && hour < 22) mealType = 'Ужин';
+    const mealType = getMealTypeByHour(hour);
     
     // Добавляем блюдо в дневник (БЕЗ эмодзи, только название)
     const name = foodData.name || 'Неизвестное блюдо';
