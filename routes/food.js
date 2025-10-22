@@ -386,6 +386,11 @@ router.put('/:id/update-with-image', authMiddleware, async (req, res) => {
     });
     
     console.log('✅ Блюдо обновлено:', updatedFood._id);
+    console.log('📝 Новые данные в базе:', {
+      name: updatedFood.name,
+      calories: updatedFood.calories,
+      macros: updatedFood.macros
+    });
     
     // Преобразуем в объект с виртуальными полями
     const foodObject = updatedFood.toObject ? updatedFood.toObject() : updatedFood;
