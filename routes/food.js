@@ -377,16 +377,32 @@ router.put('/:id/update-with-image', authMiddleware, async (req, res) => {
     
     console.log('📊 AI Analysis Result:', JSON.stringify(foodData, null, 2));
     
-    // Обновляем блюдо
-    const updatedFood = await Database.updateFood(req.params.id, {
-      name: foodData.name || newName,
+    // Формируем название с emoji (как при создании блюда)
+    const emoji = foodData.emoji || '🍽️';
+    const nameWithEmoji = `${emoji} ${foodData.name || newName}`;
+    
+    const updateData = {
+      name: nameWithEmoji,
       calories: foodData.calories || 0,
       macros: foodData.macros || { protein: 0, fat: 0, carbs: 0 },
       healthScore: foodData.healthScore !== undefined ? foodData.healthScore : 50
-    });
+    };
     
-    console.log('✅ Блюдо обновлено:', updatedFood._id);
-    console.log('📝 Новые данные в базе:', {
+    console.log('💾 Данные для обновления в MongoDB:', JSON.stringify(updateData, null, 2));
+    
+    // Обновляем блюдо
+    const updatedFood = await Database.updateFood(req.params.id, updateData);
+    
+    if (!updatedFood) {
+      console.error('❌ Блюдо не найдено после обновления!');
+      return res.status(404).json({
+        success: false,
+        message: 'Блюдо не найдено после обновления'
+      });
+    }
+    
+    console.log('✅ Блюдо обновлено в MongoDB:', {
+      id: updatedFood._id,
       name: updatedFood.name,
       calories: updatedFood.calories,
       macros: updatedFood.macros
