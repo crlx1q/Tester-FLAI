@@ -14,7 +14,7 @@ function getMealTypeByHour(hour) {
   if (hour >= 6 && hour < 12) return 'Завтрак';
   if (hour >= 12 && hour < 16) return 'Обед';
   if (hour >= 16 && hour < 21) return 'Ужин';
-  return 'Ночной перекус';
+  return 'Перекус';
 }
 
 // Получить локальный час из запроса или использовать серверное время
@@ -735,57 +735,48 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
       ? image.split('base64,')[1] 
       : image;
     
-    console.log(`📸 Получено изображение, размер base64: ${(base64Data.length / 1024).toFixed(2)} KB`);
+    // ✅ ПРОВЕРКА РАЗМЕРА: максимум 25 MB (защита от модов)
+    const buffer = Buffer.from(base64Data, 'base64');
+    const fileSizeMB = buffer.length / (1024 * 1024);
+    const maxSizeMB = 25;
     
-    // Проверяем размер для free пользователей
-    try {
-      checkBase64SizeLimit(req.userId, base64Data);
-    } catch (error) {
-      if (error.statusCode === 413) {
-        console.log(`❌ Изображение слишком большое: ${error.fileSize}`);
-        return res.status(413).json({
-          success: false,
-          message: error.message,
-          fileSize: error.fileSize
-        });
-      }
-      throw error;
+    if (fileSizeMB > maxSizeMB) {
+      console.log(`❌ Файл слишком большой: ${fileSizeMB.toFixed(2)} MB (лимит ${maxSizeMB} MB)`);
+      return res.status(413).json({
+        success: false,
+        message: `Превышен размер файла: ${fileSizeMB.toFixed(1)} MB. Максимум ${maxSizeMB} MB.`
+      });
     }
     
-    // Сжимаем изображение
-    const compressedBuffer = await compressBase64Image(base64Data);
-    base64Data = compressedBuffer.toString('base64');
+    console.log(`📸 Изображение принято: ${fileSizeMB.toFixed(2)} MB`);
+    
+    // ✅ НЕ СЖИМАЕМ! Клиент уже сжал, сразу отправляем в AI
 
     const { analyzeImageFood } = require('../utils/ai');
     
     // Анализируем через Gemini Vision
     const foodData = await analyzeImageFood(base64Data);
     
-    console.log('📊 AI Analysis Result:', foodData);
-    
     // Определяем тип приема пищи по времени (используем локальное время клиента)
     const hour = getLocalHour(req);
     const mealType = getMealTypeByHour(hour);
     
-    // Добавляем блюдо в дневник (БЕЗ эмодзи, только название)
+    // Добавляем блюдо в дневник
     const name = foodData.name || 'Неизвестное блюдо';
     const foodToSave = {
       userId: req.userId,
-      name: name, // Без эмодзи!
+      name: name,
       calories: foodData.calories || 0,
       macros: foodData.macros || { protein: 0, fat: 0, carbs: 0 },
       healthScore: foodData.healthScore !== undefined ? foodData.healthScore : 50,
-      imageUrl: `data:image/jpeg;base64,${base64Data}`, // ✅ Base64 для MongoDB!
+      imageUrl: `data:image/jpeg;base64,${base64Data}`,
       mealType
     };
     
-    console.log('💾 Saving food to database (with base64 image)');
     const newFood = await Database.createFood(foodToSave);
-    console.log('✅ Food saved with ID:', newFood._id);
     
     // Преобразуем в объект с виртуальными полями
     const foodObject = newFood.toObject();
-    console.log('🖼️ Food has imageUrl:', !!foodObject.imageUrl);
     
     // Увеличиваем счетчик использования
     await Database.incrementUserUsage(req.userId, 'photos');
