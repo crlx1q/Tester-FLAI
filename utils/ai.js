@@ -2,7 +2,7 @@ const axios = require('axios');
 
 // Используем те же переменные что и в ai-service.js
 const GEMINI_API_KEY = process.env.AI_API_KEY;
-const GEMINI_MODEL = 'gemini-2.5-flash'; // Gemini 2.5 Flash (Stable)
+const GEMINI_MODEL = 'gemini-2.5-flash-lite'; // Gemini 2.5 Flash Lite (Stable)
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 /**
@@ -96,7 +96,7 @@ async function analyzeTextDescription(description) {
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 30000
+        timeout: 60000 // ✅ Увеличили с 30 до 60 секунд для медленного интернета
       }
     );
 
@@ -105,12 +105,10 @@ async function analyzeTextDescription(description) {
     // Пробуем распарсить напрямую (если responseMimeType работает)
     try {
       let result = JSON.parse(text);
-      console.log('✅ AI ответ (текст):', JSON.stringify(result, null, 2));
       
       // Если ответ - массив, берем первый элемент
       if (Array.isArray(result) && result.length > 0) {
         result = result[0];
-        console.log('📦 Извлечен первый элемент из массива:', JSON.stringify(result, null, 2));
       }
       
       return result;
@@ -119,12 +117,10 @@ async function analyzeTextDescription(description) {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         let result = JSON.parse(jsonMatch[0]);
-        console.log('✅ AI ответ (текст, извлечен):', JSON.stringify(result, null, 2));
         
         // Если ответ - массив, берем первый элемент
         if (Array.isArray(result) && result.length > 0) {
           result = result[0];
-          console.log('📦 Извлечен первый элемент из массива:', JSON.stringify(result, null, 2));
         }
         
         return result;
@@ -215,7 +211,7 @@ async function analyzeImageFood(imageBase64) {
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 30000
+        timeout: 60000 // ✅ Увеличили с 30 до 60 секунд для медленного интернета
       }
     );
 
@@ -224,12 +220,10 @@ async function analyzeImageFood(imageBase64) {
     // Пробуем распарсить напрямую
     try {
       let result = JSON.parse(text);
-      console.log('✅ AI ответ (изображение):', JSON.stringify(result, null, 2));
       
       // Если ответ - массив, берем первый элемент
       if (Array.isArray(result) && result.length > 0) {
         result = result[0];
-        console.log('📦 Извлечен первый элемент из массива:', JSON.stringify(result, null, 2));
       }
       
       return result;
@@ -238,12 +232,10 @@ async function analyzeImageFood(imageBase64) {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         let result = JSON.parse(jsonMatch[0]);
-        console.log('✅ AI ответ (изображение, извлечен):', JSON.stringify(result, null, 2));
         
         // Если ответ - массив, берем первый элемент
         if (Array.isArray(result) && result.length > 0) {
           result = result[0];
-          console.log('📦 Извлечен первый элемент из массива:', JSON.stringify(result, null, 2));
         }
         
         return result;
@@ -337,7 +329,6 @@ async function generateRecipe(dishName, imageBase64 = null) {
     
     try {
       let result = JSON.parse(text);
-      console.log('✅ AI сгенерировал рецепт:', JSON.stringify(result, null, 2));
       
       if (Array.isArray(result) && result.length > 0) {
         result = result[0];
@@ -348,7 +339,6 @@ async function generateRecipe(dishName, imageBase64 = null) {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         let result = JSON.parse(jsonMatch[0]);
-        console.log('✅ AI сгенерировал рецепт (извлечен):', JSON.stringify(result, null, 2));
         
         if (Array.isArray(result) && result.length > 0) {
           result = result[0];
@@ -436,7 +426,7 @@ async function analyzeImageFoodWithName(imageBase64, newName) {
         headers: {
           'Content-Type': 'application/json',
         },
-        timeout: 30000
+        timeout: 60000 // ✅ Увеличили с 30 до 60 секунд для медленного интернета
       }
     );
 
@@ -445,12 +435,10 @@ async function analyzeImageFoodWithName(imageBase64, newName) {
     // Пробуем распарсить напрямую
     try {
       let result = JSON.parse(text);
-      console.log('✅ AI ответ (изображение с названием):', JSON.stringify(result, null, 2));
       
       // Если ответ - массив, берем первый элемент
       if (Array.isArray(result) && result.length > 0) {
         result = result[0];
-        console.log('📦 Извлечен первый элемент из массива:', JSON.stringify(result, null, 2));
       }
       
       return result;
@@ -459,12 +447,10 @@ async function analyzeImageFoodWithName(imageBase64, newName) {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         let result = JSON.parse(jsonMatch[0]);
-        console.log('✅ AI ответ (изображение с названием, извлечен):', JSON.stringify(result, null, 2));
         
         // Если ответ - массив, берем первый элемент
         if (Array.isArray(result) && result.length > 0) {
           result = result[0];
-          console.log('📦 Извлечен первый элемент из массива:', JSON.stringify(result, null, 2));
         }
         
         return result;
