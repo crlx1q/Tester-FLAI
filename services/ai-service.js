@@ -188,7 +188,7 @@ ${context.todayFoods.length > 0 ? context.todayFoods.map(f => `- ${f.name}: ${f.
       
       // Gemini 2.5 Flash API
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.AI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.AI_API_KEY}`,
         {
           systemInstruction: {
             parts: [{ text: systemPrompt }]
@@ -318,7 +318,7 @@ async function chatWithAIImage(imagePath, message, context) {
     if (provider === 'gemini') {
       // Gemini 2.5 Flash with Vision
       const response = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.AI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.AI_API_KEY}`,
         {
           systemInstruction: {
             parts: [{ text: systemPrompt }]
