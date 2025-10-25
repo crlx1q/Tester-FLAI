@@ -75,7 +75,7 @@ app.use((err, req, res, next) => {
 // Запуск сервера с подключением к MongoDB
 const startServer = async () => {
   try {
-    // Подключаемся к MongoDB Atlas
+    // Подключаемся к локальной MongoDB
     await connectDB();
     
     // Загружаем Gemini API ключ из БД
