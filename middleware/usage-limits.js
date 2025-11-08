@@ -1,4 +1,5 @@
 const Database = require('../utils/database');
+const { getCurrentDate, TIMEZONE } = require('../utils/timezone');
 
 // Лимиты для Free и Pro пользователей
 const LIMITS = {
@@ -30,10 +31,20 @@ const checkPhotoLimit = async (req, res, next) => {
     
     // Проверяем не истек ли Pro (если есть)
     if (subscriptionType === 'pro' && user.subscriptionExpiresAt) {
+      const now = new Date(); // UTC время (правильное для сравнения дат)
       const expiresAt = new Date(user.subscriptionExpiresAt);
-      const now = new Date();
+      
+      // console.log('🔍 Проверка подписки (photos):', {
+      //   now_Almaty: now.toLocaleString('ru-RU', { timeZone: TIMEZONE }),
+      //   now_UTC: now.toISOString(),
+      //   expiresAt_Almaty: expiresAt.toLocaleString('ru-RU', { timeZone: TIMEZONE }),
+      //   expiresAt_UTC: expiresAt.toISOString(),
+      //   expired: now > expiresAt
+      // });
+      
       if (now > expiresAt) {
         // Подписка истекла, переводим на free
+        console.log('⚠️ Подписка истекла, переводим на FREE');
         await Database.updateUserSubscription(user._id, 'free', null);
         user.subscriptionType = 'free';
         user.isPro = false;
@@ -86,9 +97,10 @@ const checkMessageLimit = async (req, res, next) => {
     // Проверяем тип подписки и срок действия
     const subscriptionType = user.subscriptionType || 'free';
     if (subscriptionType === 'pro' && user.subscriptionExpiresAt) {
+      const now = new Date(); // UTC время (правильное для сравнения дат)
       const expiresAt = new Date(user.subscriptionExpiresAt);
-      const now = new Date();
       if (now > expiresAt) {
+        console.log('⚠️ Подписка истекла (messages), переводим на FREE');
         await Database.updateUserSubscription(user._id, 'free', null);
         user.subscriptionType = 'free';
         user.isPro = false;
@@ -140,9 +152,10 @@ const checkRecipeLimit = async (req, res, next) => {
     // Проверяем тип подписки и срок действия
     const subscriptionType = user.subscriptionType || 'free';
     if (subscriptionType === 'pro' && user.subscriptionExpiresAt) {
+      const now = new Date(); // UTC время (правильное для сравнения дат)
       const expiresAt = new Date(user.subscriptionExpiresAt);
-      const now = new Date();
       if (now > expiresAt) {
+        console.log('⚠️ Подписка истекла (recipes), переводим на FREE');
         await Database.updateUserSubscription(user._id, 'free', null);
         user.subscriptionType = 'free';
         user.isPro = false;
@@ -194,9 +207,10 @@ const requirePro = async (req, res, next) => {
     // Проверяем подписку и срок действия
     const subscriptionType = user.subscriptionType || 'free';
     if (subscriptionType === 'pro' && user.subscriptionExpiresAt) {
+      const now = new Date(); // UTC время (правильное для сравнения дат)
       const expiresAt = new Date(user.subscriptionExpiresAt);
-      const now = new Date();
       if (now > expiresAt) {
+        console.log('⚠️ Подписка истекла (requirePro), переводим на FREE');
         await Database.updateUserSubscription(user._id, 'free', null);
         return res.status(403).json({
           success: false,
