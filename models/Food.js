@@ -41,7 +41,7 @@ const foodSchema = new mongoose.Schema({
   },
   timestamp: {
     type: Date,
-    default: Date.now,
+    default: Date.now, // MongoDB хранит UTC время (правильно!)
     index: true
   }
 }, {

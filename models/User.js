@@ -33,6 +33,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  subscriptionStartedAt: {
+    type: Date,
+    default: null
+  },
   subscriptionExpiresAt: {
     type: Date,
     default: null
