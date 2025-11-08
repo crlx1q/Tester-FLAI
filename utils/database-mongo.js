@@ -62,8 +62,10 @@ class Database {
   }
   
   static async getFoodsByDate(userId, date) {
+    // Просто! Date уже в Asia/Almaty
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
+    
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
     
@@ -145,7 +147,7 @@ class Database {
       name: foodData.name,
       calories: foodData.calories,
       macros: foodData.macros,
-      addedAt: new Date()
+      addedAt: new Date() // MongoDB хранит UTC время (правильно!)
     };
     
     user.favoriteFoods.push(favoriteFood);
@@ -249,15 +251,33 @@ class Database {
   }
   
   static async getWaterIntakeByDate(userId, date) {
-    const targetDate = new Date(date);
-    const dateStr = targetDate.toISOString().split('T')[0];
+    // Если date уже строка YYYY-MM-DD, используем её напрямую
+    let dateStr;
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      dateStr = date;
+    } else {
+      const targetDate = new Date(date);
+      const year = targetDate.getFullYear();
+      const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+      const day = String(targetDate.getDate()).padStart(2, '0');
+      dateStr = `${year}-${month}-${day}`;
+    }
     
     return await WaterIntake.findOne({ userId, date: dateStr });
   }
   
   static async saveWaterIntake(userId, date, amount) {
-    const targetDate = new Date(date);
-    const dateStr = targetDate.toISOString().split('T')[0];
+    // Если date уже строка YYYY-MM-DD, используем её напрямую
+    let dateStr;
+    if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      dateStr = date;
+    } else {
+      const targetDate = new Date(date);
+      const year = targetDate.getFullYear();
+      const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+      const day = String(targetDate.getDate()).padStart(2, '0');
+      dateStr = `${year}-${month}-${day}`;
+    }
     
     // Используем upsert для создания или обновления
     const waterIntake = await WaterIntake.findOneAndUpdate(
@@ -275,7 +295,8 @@ class Database {
     const user = await User.findById(userId);
     if (!user) return null;
     
-    const today = new Date().toISOString().split('T')[0];
+    const { getDateString, getCurrentDate } = require('./timezone');
+    const today = getDateString(getCurrentDate());
     
     if (!user.usage || user.usage.date !== today) {
       return {
@@ -293,7 +314,8 @@ class Database {
     const user = await User.findById(userId);
     if (!user) return null;
     
-    const today = new Date().toISOString().split('T')[0];
+    const { getDateString, getCurrentDate } = require('./timezone');
+    const today = getDateString(getCurrentDate());
     
     // Сбрасываем счетчики если новый день
     if (!user.usage || user.usage.date !== today) {
@@ -319,15 +341,26 @@ class Database {
   }
   
   static async updateUserSubscription(userId, subscriptionType, expiresAt = null) {
+    const updateData = {
+      subscriptionType,
+      subscriptionExpiresAt: expiresAt,
+      isPro: subscriptionType === 'pro'
+    };
+    
+    // Если устанавливаем PRO - сохраняем дату начала (начало дня в Almaty)
+    if (subscriptionType === 'pro' && expiresAt) {
+      const { getTodayStart } = require('./timezone');
+      updateData.subscriptionStartedAt = getTodayStart();
+    }
+    
+    // Если переводим на FREE - очищаем дату начала
+    if (subscriptionType === 'free') {
+      updateData.subscriptionStartedAt = null;
+    }
+    
     const user = await User.findByIdAndUpdate(
       userId,
-      {
-        $set: {
-          subscriptionType,
-          subscriptionExpiresAt: expiresAt,
-          isPro: subscriptionType === 'pro'
-        }
-      },
+      { $set: updateData },
       { new: true }
     );
     
