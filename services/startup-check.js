@@ -32,24 +32,24 @@ class StartupCheckService {
     
     try {
       const users = await User.find({ lastVisit: { $ne: null } });
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const { getTodayStart, getLocalDay, getDaysDifference, getDateString } = require('../utils/timezone');
+      const today = getTodayStart();
       
       let updatedCount = 0;
       
       for (const user of users) {
         const lastVisit = new Date(user.lastVisit);
-        const lastVisitDay = new Date(lastVisit.getFullYear(), lastVisit.getMonth(), lastVisit.getDate());
+        const lastVisitDay = getLocalDay(lastVisit);
         
         // Вычисляем разницу в днях
-        const diffDays = Math.floor((today - lastVisitDay) / (1000 * 60 * 60 * 24));
+        const diffDays = getDaysDifference(today, lastVisitDay);
         
         // Если прошло более 1 дня (то есть 2 или больше), сбрасываем streak
         if (diffDays > 1 && user.streak > 0) {
           user.streak = 0;
           await user.save();
           updatedCount++;
-          console.log(`  ↳ Streak сброшен для ${user.email} (последний визит: ${lastVisit.toISOString().split('T')[0]}, прошло дней: ${diffDays})`);
+          console.log(`  ↳ Streak сброшен для ${user.email} (последний визит: ${getDateString(lastVisit)}, прошло дней: ${diffDays})`);
         }
       }
       
@@ -77,7 +77,8 @@ class StartupCheckService {
         subscriptionExpiresAt: { $ne: null }
       });
       
-      const now = new Date();
+      const { getCurrentDate } = require('../utils/timezone');
+      const now = getCurrentDate(); // Текущее время в Asia/Almaty
       let updatedCount = 0;
       
       for (const user of users) {
@@ -113,12 +114,10 @@ class StartupCheckService {
   static calculateRemainingDays(expiresAt) {
     if (!expiresAt) return 0;
     
-    const now = new Date();
+    const { getTodayStart, getLocalDay } = require('../utils/timezone');
+    const todayStart = getTodayStart(); // Начало сегодня в Asia/Almaty
     const expires = new Date(expiresAt);
-    
-    // Устанавливаем время на начало дня для корректного подсчета
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const expiresStart = new Date(expires.getFullYear(), expires.getMonth(), expires.getDate());
+    const expiresStart = getLocalDay(expires); // Начало дня истечения в Asia/Almaty
     
     const diffMs = expiresStart - todayStart;
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
