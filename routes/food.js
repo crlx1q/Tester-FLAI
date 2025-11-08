@@ -6,6 +6,7 @@ const { checkPhotoLimit } = require('../middleware/usage-limits');
 const { checkFileSizeLimit, compressImage, compressBase64Image, checkBase64SizeLimit } = require('../middleware/image-compression');
 const Database = require('../utils/database');
 const { analyzeFood } = require('../services/ai-service');
+const { getCurrentDate, getTodayStart, getLocalDay, getDaysDifference, TIMEZONE } = require('../utils/timezone');
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ function getLocalHour(req) {
   if (req.body && req.body.localHour !== undefined) {
     return parseInt(req.body.localHour);
   }
-  // Иначе используем серверное время (UTC)
+  // Иначе используем серверное время (уже в Asia/Almaty!)
   return new Date().getHours();
 }
 
@@ -166,6 +167,13 @@ router.get('/daily-summary', authMiddleware, async (req, res) => {
   try {
     const user = await Database.getUserById(req.userId);
     
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Пользователь не найден'
+      });
+    }
+    
     // Получаем дату из query параметра или используем сегодня
     let targetDate = new Date();
     if (req.query.date) {
@@ -187,7 +195,7 @@ router.get('/daily-summary', authMiddleware, async (req, res) => {
       }
     });
     
-    const remainingCalories = user.dailyCalories - totalCalories;
+    const remainingCalories = (user.dailyCalories || 2000) - totalCalories;
     
     // Преобразуем Mongoose документы в объекты с виртуальными полями
     const foodsWithImages = dayFoods.map(food => food.toObject ? food.toObject() : food);
@@ -196,10 +204,10 @@ router.get('/daily-summary', authMiddleware, async (req, res) => {
       success: true,
       data: {
         totalCalories,
-        targetCalories: user.dailyCalories,
+        targetCalories: user.dailyCalories || 2000,
         remainingCalories,
         consumedMacros,
-        targetMacros: user.macros,
+        targetMacros: user.macros || { carbs: 270, protein: 130, fat: 58 },
         foods: foodsWithImages
       }
     });
@@ -264,6 +272,11 @@ router.get('/monthly-active-days', authMiddleware, async (req, res) => {
       });
     }
     
+    // Получаем пользователя для проверки lastVisit
+    const user = await Database.getUserById(req.userId);
+    const lastVisit = user.lastVisit ? new Date(user.lastVisit) : null;
+    const lastVisitDay = lastVisit ? getLocalDay(lastVisit) : null;
+    
     // Используем UTC даты для корректной работы с часовыми поясами
     const startDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, 1));
     const endDate = new Date(Date.UTC(parseInt(year), parseInt(month), 0, 23, 59, 59, 999));
@@ -272,12 +285,28 @@ router.get('/monthly-active-days', authMiddleware, async (req, res) => {
     const currentDate = new Date(startDate);
     
     while (currentDate <= endDate) {
+      let isActive = false;
+      
+      // Проверяем наличие записей еды
       const foods = await Database.getFoodsByDate(req.userId, currentDate);
       if (foods && foods.length > 0) {
+        isActive = true;
+      }
+      
+      // Проверяем, совпадает ли lastVisit с этим днём
+      if (!isActive && lastVisitDay) {
+        const checkDay = getLocalDay(currentDate);
+        if (checkDay.getTime() === lastVisitDay.getTime()) {
+          isActive = true;
+        }
+      }
+      
+      if (isActive) {
         // Используем UTC дату для строки
         const dateStr = currentDate.toISOString().split('T')[0];
         activeDays.push(dateStr);
       }
+      
       // Переходим к следующему дню в UTC
       currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
@@ -668,40 +697,50 @@ router.post('/analyze-description', authMiddleware, async (req, res) => {
     });
     
     // Обновляем streak (активность пользователя)
-    const user = Database.getUserById(req.userId);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const user = await Database.getUserById(req.userId);
+    const now = new Date(); // UTC время для сохранения в базу
+    const today = getTodayStart();
     const lastVisit = user.lastVisit ? new Date(user.lastVisit) : null;
-    const lastVisitDay = lastVisit ? new Date(lastVisit.getFullYear(), lastVisit.getMonth(), lastVisit.getDate()) : null;
+    const lastVisitDay = lastVisit ? getLocalDay(lastVisit) : null;
     
     let newStreak = user.streak || 0;
     let maxStreak = user.maxStreak || 0;
+    let shouldUpdate = false;
     
     if (lastVisitDay) {
-      const diffDays = Math.floor((today - lastVisitDay) / (1000 * 60 * 60 * 24));
+      const diffDays = getDaysDifference(today, lastVisitDay);
       if (diffDays === 0) {
-        // Сегодня уже была активность
+        // Сегодня уже была активность - не обновляем
+        shouldUpdate = false;
       } else if (diffDays === 1) {
+        // Вчера была активность - продолжаем серию
         newStreak = (newStreak === 0) ? 1 : newStreak + 1;
         if (newStreak > maxStreak) {
           maxStreak = newStreak;
         }
+        shouldUpdate = true;
       } else {
+        // Пропустили 2+ дня - начинаем новую серию
         newStreak = 1;
         if (maxStreak === 0) {
           maxStreak = 1;
         }
+        shouldUpdate = true;
       }
     } else {
+      // Первый визит
       newStreak = 1;
       maxStreak = 1;
+      shouldUpdate = true;
     }
     
-    await Database.updateUser(req.userId, {
-      streak: newStreak,
-      maxStreak: maxStreak,
-      lastVisit: now.toISOString()
-    });
+    if (shouldUpdate) {
+      await Database.updateUser(req.userId, {
+        streak: newStreak,
+        maxStreak: maxStreak,
+        lastVisit: now.toISOString()
+      });
+    }
     
     res.json({ 
       success: true, 
@@ -783,39 +822,49 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
     
     // Обновляем streak (активность пользователя)
     const user = await Database.getUserById(req.userId);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const now = new Date(); // UTC время для сохранения в базу
+    const today = getTodayStart();
     const lastVisit = user.lastVisit ? new Date(user.lastVisit) : null;
-    const lastVisitDay = lastVisit ? new Date(lastVisit.getFullYear(), lastVisit.getMonth(), lastVisit.getDate()) : null;
+    const lastVisitDay = lastVisit ? getLocalDay(lastVisit) : null;
     
     let newStreak = user.streak || 0;
     let maxStreak = user.maxStreak || 0;
+    let shouldUpdate = false;
     
     if (lastVisitDay) {
-      const diffDays = Math.floor((today - lastVisitDay) / (1000 * 60 * 60 * 24));
+      const diffDays = getDaysDifference(today, lastVisitDay);
       if (diffDays === 0) {
-        // Сегодня уже была активность
+        // Сегодня уже была активность - не обновляем
+        shouldUpdate = false;
       } else if (diffDays === 1) {
+        // Вчера была активность - продолжаем серию
         newStreak = (newStreak === 0) ? 1 : newStreak + 1;
         if (newStreak > maxStreak) {
           maxStreak = newStreak;
         }
+        shouldUpdate = true;
       } else {
+        // Пропустили 2+ дня - начинаем новую серию
         newStreak = 1;
         if (maxStreak === 0) {
           maxStreak = 1;
         }
+        shouldUpdate = true;
       }
     } else {
+      // Первый визит
       newStreak = 1;
       maxStreak = 1;
+      shouldUpdate = true;
     }
     
-    await Database.updateUser(req.userId, {
-      streak: newStreak,
-      maxStreak: maxStreak,
-      lastVisit: now.toISOString()
-    });
+    if (shouldUpdate) {
+      await Database.updateUser(req.userId, {
+        streak: newStreak,
+        maxStreak: maxStreak,
+        lastVisit: now.toISOString()
+      });
+    }
     
     res.json({ 
       success: true, 

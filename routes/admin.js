@@ -120,8 +120,11 @@ router.post('/users/:userId/subscription', checkAdminAuth, async (req, res) => {
     
     let expiresAt = null;
     if (subscriptionType === 'pro' && durationDays) {
-      const expirationDate = new Date();
-      expirationDate.setDate(expirationDate.getDate() + parseInt(durationDays));
+      const { getTodayStart } = require('../utils/timezone');
+      const today = getTodayStart(); // Начало дня в Asia/Almaty (в UTC)
+      // Добавляем дни напрямую в миллисекундах, чтобы избежать проблем с часовыми поясами
+      const daysInMs = parseInt(durationDays) * 24 * 60 * 60 * 1000;
+      const expirationDate = new Date(today.getTime() + daysInMs);
       expiresAt = expirationDate.toISOString();
     }
     
@@ -168,7 +171,8 @@ router.get('/stats', checkAdminAuth, async (req, res) => {
     };
     
     // Подсчитываем активность за сегодня
-    const today = new Date().toISOString().split('T')[0];
+    const { getDateString, getCurrentDate } = require('../utils/timezone');
+    const today = getDateString(getCurrentDate());
     users.forEach(user => {
       if (user.usage && user.usage.date === today) {
         stats.todayActivity.totalPhotos += user.usage.photosCount || 0;
@@ -316,12 +320,6 @@ router.post('/upload-apk', checkAdminAuth, (req, res) => {
       
       file.on('data', (data) => {
         uploadedBytes += data.length;
-        const progress = Math.round((uploadedBytes / contentLength) * 100);
-        
-        // Логируем прогресс каждые 10%
-        if (progress % 10 === 0) {
-          console.log(`📊 Прогресс загрузки: ${progress}% (${(uploadedBytes / 1024 / 1024).toFixed(2)} MB)`);
-        }
       });
       
       file.pipe(writeStream);

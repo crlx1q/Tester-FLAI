@@ -7,6 +7,7 @@ const { checkMessageLimit, requirePro } = require('../middleware/usage-limits');
 const { checkFileSizeLimit, compressImage } = require('../middleware/image-compression');
 const Database = require('../utils/database');
 const { chatWithAI, chatWithAIImage } = require('../services/ai-service');
+const { getCurrentDate, getTodayStart, getLocalDay, getDaysDifference } = require('../utils/timezone');
 
 const router = express.Router();
 
@@ -77,39 +78,49 @@ router.post('/chat', authMiddleware, checkMessageLimit, async (req, res) => {
     await Database.incrementUserUsage(req.userId, 'messages');
     
     // Обновляем streak (активность пользователя)
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const now = new Date(); // UTC время для сохранения в базу
+    const today = getTodayStart();
     const lastVisit = user.lastVisit ? new Date(user.lastVisit) : null;
-    const lastVisitDay = lastVisit ? new Date(lastVisit.getFullYear(), lastVisit.getMonth(), lastVisit.getDate()) : null;
+    const lastVisitDay = lastVisit ? getLocalDay(lastVisit) : null;
     
     let newStreak = user.streak || 0;
     let maxStreak = user.maxStreak || 0;
+    let shouldUpdate = false;
     
     if (lastVisitDay) {
-      const diffDays = Math.floor((today - lastVisitDay) / (1000 * 60 * 60 * 24));
+      const diffDays = getDaysDifference(today, lastVisitDay);
       if (diffDays === 0) {
-        // Сегодня уже была активность
+        // Сегодня уже была активность - не обновляем
+        shouldUpdate = false;
       } else if (diffDays === 1) {
+        // Вчера была активность - продолжаем серию
         newStreak = (newStreak === 0) ? 1 : newStreak + 1;
         if (newStreak > maxStreak) {
           maxStreak = newStreak;
         }
+        shouldUpdate = true;
       } else {
+        // Пропустили 2+ дня - начинаем новую серию
         newStreak = 1;
         if (maxStreak === 0) {
           maxStreak = 1;
         }
+        shouldUpdate = true;
       }
     } else {
+      // Первый визит
       newStreak = 1;
       maxStreak = 1;
+      shouldUpdate = true;
     }
     
-    await Database.updateUser(req.userId, {
-      streak: newStreak,
-      maxStreak: maxStreak,
-      lastVisit: now.toISOString()
-    });
+    if (shouldUpdate) {
+      await Database.updateUser(req.userId, {
+        streak: newStreak,
+        maxStreak: maxStreak,
+        lastVisit: now.toISOString()
+      });
+    }
     
     res.json({
       success: true,
@@ -184,39 +195,49 @@ router.post('/chat-image', authMiddleware, checkMessageLimit, upload.single('ima
     await Database.incrementUserUsage(req.userId, 'messages');
     
     // Обновляем streak (активность пользователя)
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const now = new Date(); // UTC время для сохранения в базу
+    const today = getTodayStart();
     const lastVisit = user.lastVisit ? new Date(user.lastVisit) : null;
-    const lastVisitDay = lastVisit ? new Date(lastVisit.getFullYear(), lastVisit.getMonth(), lastVisit.getDate()) : null;
+    const lastVisitDay = lastVisit ? getLocalDay(lastVisit) : null;
     
     let newStreak = user.streak || 0;
     let maxStreak = user.maxStreak || 0;
+    let shouldUpdate = false;
     
     if (lastVisitDay) {
-      const diffDays = Math.floor((today - lastVisitDay) / (1000 * 60 * 60 * 24));
+      const diffDays = getDaysDifference(today, lastVisitDay);
       if (diffDays === 0) {
-        // Сегодня уже была активность
+        // Сегодня уже была активность - не обновляем
+        shouldUpdate = false;
       } else if (diffDays === 1) {
+        // Вчера была активность - продолжаем серию
         newStreak = (newStreak === 0) ? 1 : newStreak + 1;
         if (newStreak > maxStreak) {
           maxStreak = newStreak;
         }
+        shouldUpdate = true;
       } else {
+        // Пропустили 2+ дня - начинаем новую серию
         newStreak = 1;
         if (maxStreak === 0) {
           maxStreak = 1;
         }
+        shouldUpdate = true;
       }
     } else {
+      // Первый визит
       newStreak = 1;
       maxStreak = 1;
+      shouldUpdate = true;
     }
     
-    await Database.updateUser(req.userId, {
-      streak: newStreak,
-      maxStreak: maxStreak,
-      lastVisit: now.toISOString()
-    });
+    if (shouldUpdate) {
+      await Database.updateUser(req.userId, {
+        streak: newStreak,
+        maxStreak: maxStreak,
+        lastVisit: now.toISOString()
+      });
+    }
     
     // Удаляем временный файл
     fs.unlinkSync(req.file.path);
@@ -242,7 +263,7 @@ router.post('/chat-image', authMiddleware, checkMessageLimit, upload.single('ima
 router.post('/daily-summary', authMiddleware, requirePro, async (req, res) => {
   try {
     const user = await Database.getUserById(req.userId);
-    const todayFoods = await Database.getFoodsByDate(req.userId, new Date());
+    const todayFoods = await Database.getFoodsByDate(req.userId, getCurrentDate());
     
     // Подсчитываем общие показатели
     let totalCalories = 0;
