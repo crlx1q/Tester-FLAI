@@ -6,12 +6,14 @@ const LIMITS = {
   free: {
     photos: 2,
     messages: 10,
-    recipes: 1
+    recipes: 1,
+    mealAdvice: 5
   },
   pro: {
     photos: 50,
     messages: 100,
-    recipes: 30
+    recipes: 30,
+    mealAdvice: 20
   }
 };
 

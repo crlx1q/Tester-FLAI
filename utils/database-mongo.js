@@ -319,11 +319,15 @@ class Database {
         date: today,
         photosCount: 0,
         messagesCount: 0,
-        recipesCount: 0
+        recipesCount: 0,
+        mealAdviceCount: 0
       };
     }
     
-    return user.usage;
+    return {
+      ...user.usage.toObject ? user.usage.toObject() : user.usage,
+      mealAdviceCount: user.usage.mealAdviceCount || 0
+    };
   }
   
   static async incrementUserUsage(userId, field) {
@@ -339,7 +343,8 @@ class Database {
         date: today,
         photosCount: 0,
         messagesCount: 0,
-        recipesCount: 0
+        recipesCount: 0,
+        mealAdviceCount: 0
       };
     }
     
@@ -350,6 +355,8 @@ class Database {
       user.usage.messagesCount = (user.usage.messagesCount || 0) + 1;
     } else if (field === 'recipes') {
       user.usage.recipesCount = (user.usage.recipesCount || 0) + 1;
+    } else if (field === 'mealAdvice') {
+      user.usage.mealAdviceCount = (user.usage.mealAdviceCount || 0) + 1;
     }
     
     await user.save();

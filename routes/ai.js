@@ -324,10 +324,30 @@ ${user.allergies && user.allergies.length > 0 ? `- Аллергии: ${user.alle
   }
 });
 
-// AI совет на следующий приём пищи
+// AI совет на следующий приём пищи (с лимитом: 5/день free, 20/день pro)
 router.get('/meal-advice', authMiddleware, async (req, res) => {
   try {
     const user = await Database.getUserById(req.userId);
+    
+    // Проверяем лимит
+    const { LIMITS } = require('../middleware/usage-limits');
+    const usage = await Database.getUserUsage(req.userId);
+    const subscriptionType = user.subscriptionType === 'pro' ? 'pro' : 'free';
+    const limit = LIMITS[subscriptionType].mealAdvice;
+    const current = usage.mealAdviceCount || 0;
+    
+    if (current >= limit) {
+      return res.status(403).json({
+        success: false,
+        message: `Достигнут лимит советов AI (${limit} в день). ${subscriptionType === 'free' ? 'Перейдите на Pro для 20 советов в день!' : 'Попробуйте завтра.'}`,
+        limitReached: true,
+        limitType: 'mealAdvice',
+        current,
+        max: limit,
+        isPro: subscriptionType === 'pro'
+      });
+    }
+    
     const todayFoods = await Database.getFoodsByDate(req.userId, getCurrentDate());
     
     // Получаем час из query или текущий
@@ -336,9 +356,17 @@ router.get('/meal-advice', authMiddleware, async (req, res) => {
     const { generateMealAdvice } = require('../services/ai-service');
     const advice = await generateMealAdvice(user, todayFoods, hour);
     
+    // Увеличиваем счётчик использования
+    await Database.incrementUserUsage(req.userId, 'mealAdvice');
+    const updatedUsage = await Database.getUserUsage(req.userId);
+    
     res.json({
       success: true,
-      ...advice
+      ...advice,
+      usage: {
+        current: updatedUsage.mealAdviceCount || (current + 1),
+        max: limit
+      }
     });
   } catch (error) {
     console.error('Meal advice error:', error);
