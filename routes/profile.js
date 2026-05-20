@@ -4,6 +4,7 @@ const authMiddleware = require('../middleware/auth');
 const { checkFileSizeLimit, compressImage } = require('../middleware/image-compression');
 const Database = require('../utils/database');
 const { LIMITS } = require('../middleware/usage-limits');
+const { getCurrentDate, getTodayStart, getLocalDay, getDaysDifference, TIMEZONE } = require('../utils/timezone');
 
 const router = express.Router();
 
@@ -56,9 +57,19 @@ router.get('/', authMiddleware, async (req, res) => {
     
     // Проверяем подписку и обновляем если истекла
     if (user.subscriptionType === 'pro' && user.subscriptionExpiresAt) {
+      const now = new Date(); // UTC время (правильное для сравнения дат)
       const expiresAt = new Date(user.subscriptionExpiresAt);
-      const now = new Date();
+      
+      // console.log('🔍 Проверка подписки (profile):', {
+      //   now_Almaty: now.toLocaleString('ru-RU', { timeZone: TIMEZONE }),
+      //   now_UTC: now.toISOString(),
+      //   expiresAt_Almaty: expiresAt.toLocaleString('ru-RU', { timeZone: TIMEZONE }),
+      //   expiresAt_UTC: expiresAt.toISOString(),
+      //   expired: now > expiresAt
+      // });
+      
       if (now > expiresAt) {
+        console.log('⚠️ Подписка истекла (profile), переводим на FREE');
         await Database.updateUserSubscription(user._id, 'free', null);
         // Обновляем данные пользователя
         user.subscriptionType = 'free';
@@ -75,6 +86,37 @@ router.get('/', authMiddleware, async (req, res) => {
       const StartupCheckService = require('../services/startup-check');
       userObject.subscriptionRemainingDays = StartupCheckService.calculateRemainingDays(userObject.subscriptionExpiresAt);
     }
+    
+    // Вычисляем статус streak
+    const today = getTodayStart();
+    const lastVisit = userObject.lastVisit ? new Date(userObject.lastVisit) : null;
+    const lastVisitDay = lastVisit ? getLocalDay(lastVisit) : null;
+    
+    let streakStatus = 'inactive'; // inactive, active, at_risk, expired
+    let displayStreak = userObject.streak || 0;
+    
+    if (lastVisitDay) {
+      const diffDays = getDaysDifference(today, lastVisitDay);
+      
+      if (diffDays === 0) {
+        // Сегодня была активность - горит
+        streakStatus = 'active';
+      } else if (diffDays === 1) {
+        // Вчера была активность - серый (под угрозой)
+        streakStatus = 'at_risk';
+      } else {
+        // Прошло 2+ дня - сгорел
+        streakStatus = 'expired';
+        displayStreak = 0;
+      }
+    } else {
+      // Никогда не было активности
+      streakStatus = 'inactive';
+      displayStreak = 0;
+    }
+    
+    userObject.streakStatus = streakStatus;
+    userObject.displayStreak = displayStreak;
     
     res.json({
       success: true,
@@ -279,9 +321,19 @@ router.get('/limits', authMiddleware, async (req, res) => {
     let remainingDays = 0;
     
     if (isPro && subscriptionExpiresAt) {
+      const now = new Date(); // UTC время (правильное для сравнения дат)
       const expiresAt = new Date(subscriptionExpiresAt);
-      const now = new Date();
+      
+      // console.log('🔍 Проверка подписки (limits):', {
+      //   now_Almaty: now.toLocaleString('ru-RU', { timeZone: TIMEZONE }),
+      //   now_UTC: now.toISOString(),
+      //   expiresAt_Almaty: expiresAt.toLocaleString('ru-RU', { timeZone: TIMEZONE }),
+      //   expiresAt_UTC: expiresAt.toISOString(),
+      //   expired: now > expiresAt
+      // });
+      
       if (now > expiresAt) {
+        console.log('⚠️ Подписка истекла (limits), переводим на FREE');
         await Database.updateUserSubscription(user._id, 'free', null);
         isPro = false;
         subscriptionExpiresAt = null;
@@ -300,6 +352,7 @@ router.get('/limits', authMiddleware, async (req, res) => {
       subscription: {
         type: isPro ? 'pro' : 'free',
         isPro,
+        startedAt: user.subscriptionStartedAt,
         expiresAt: subscriptionExpiresAt,
         remainingDays: remainingDays
       },
@@ -380,6 +433,50 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), async (req, res)
     res.status(500).json({
       success: false,
       message: 'Ошибка загрузки аватарки'
+    });
+  }
+});
+
+// Отменить подписку (перевести на FREE)
+router.post('/cancel-subscription', authMiddleware, async (req, res) => {
+  try {
+    const user = await Database.getUserById(req.userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Пользователь не найден'
+      });
+    }
+    
+    // Проверяем, есть ли PRO подписка
+    if (user.subscriptionType !== 'pro') {
+      return res.status(400).json({
+        success: false,
+        message: 'У вас нет активной PRO подписки'
+      });
+    }
+    
+    // Переводим на FREE
+    await Database.updateUserSubscription(user._id, 'free', null);
+    
+    console.log(`✅ Подписка отменена для пользователя ${req.userId} (${user.email})`);
+    
+    // Получаем обновленного пользователя
+    const updatedUser = await Database.getUserById(req.userId);
+    const userObject = updatedUser.toObject();
+    delete userObject.password;
+    
+    res.json({
+      success: true,
+      message: 'Подписка успешно отменена',
+      user: userObject
+    });
+  } catch (error) {
+    console.error('Cancel subscription error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка отмены подписки'
     });
   }
 });

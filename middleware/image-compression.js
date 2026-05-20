@@ -65,18 +65,16 @@ const compressImage = async (req, res, next) => {
     const inputPath = req.file.path;
     const outputPath = inputPath.replace(/\.(jpg|jpeg|png|gif|webp|heic|heif)$/i, '-compressed.jpg');
     
-    console.log(`🖼️ Сжатие изображения: ${req.file.filename}`);
-    console.log(`📦 Исходный размер: ${(req.file.size / 1024).toFixed(2)} KB`);
-    
-    // Сжимаем изображение с помощью sharp с сохранением ориентации
+    // ✅ ОПТИМИЗАЦИЯ: Уменьшили размер до 1024px и качество до 75%
+    // Клиент уже сжал изображение, поэтому сервер делает минимальную оптимизацию
     await sharp(inputPath)
       .rotate() // Автоматически поворачивает на основе EXIF данных
-      .resize(1920, 1920, { // Максимальные размеры
+      .resize(1024, 1024, { // ✅ Уменьшили с 1920 до 1024
         fit: 'inside',
         withoutEnlargement: true
       })
       .jpeg({
-        quality: 85, // Качество 85% - хороший баланс между качеством и размером
+        quality: 75, // ✅ Уменьшили с 85 до 75
         progressive: true,
         mozjpeg: true
       })
@@ -84,10 +82,6 @@ const compressImage = async (req, res, next) => {
     
     // Получаем размер сжатого файла
     const compressedStats = fs.statSync(outputPath);
-    const compressionRatio = ((1 - compressedStats.size / req.file.size) * 100).toFixed(2);
-    
-    console.log(`📦 Сжатый размер: ${(compressedStats.size / 1024).toFixed(2)} KB`);
-    console.log(`✅ Сжатие: ${compressionRatio}%`);
     
     // Удаляем оригинальный файл (с повторными попытками для Windows)
     const deleteOriginalFile = async (filePath, retries = 3) => {
@@ -164,26 +158,19 @@ const compressBase64Image = async (base64Data) => {
   try {
     const buffer = Buffer.from(base64Data, 'base64');
     
-    console.log(`🖼️ Сжатие base64 изображения`);
-    console.log(`📦 Исходный размер: ${(buffer.length / 1024).toFixed(2)} KB`);
-    
+    // ✅ ОПТИМИЗАЦИЯ: Клиент уже сжал, делаем минимальную обработку
     const compressedBuffer = await sharp(buffer)
       .rotate() // Автоматически поворачивает на основе EXIF данных
-      .resize(1920, 1920, {
+      .resize(1024, 1024, { // ✅ Уменьшили с 1920 до 1024
         fit: 'inside',
         withoutEnlargement: true
       })
       .jpeg({
-        quality: 85,
+        quality: 75, // ✅ Уменьшили с 85 до 75
         progressive: true,
         mozjpeg: true
       })
       .toBuffer();
-    
-    const compressionRatio = ((1 - compressedBuffer.length / buffer.length) * 100).toFixed(2);
-    
-    console.log(`📦 Сжатый размер: ${(compressedBuffer.length / 1024).toFixed(2)} KB`);
-    console.log(`✅ Сжатие: ${compressionRatio}%`);
     
     return compressedBuffer;
   } catch (error) {

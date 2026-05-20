@@ -6,6 +6,7 @@ const { checkPhotoLimit } = require('../middleware/usage-limits');
 const { checkFileSizeLimit, compressImage, compressBase64Image, checkBase64SizeLimit } = require('../middleware/image-compression');
 const Database = require('../utils/database');
 const { analyzeFood } = require('../services/ai-service');
+const { getCurrentDate, getTodayStart, getLocalDay, getDaysDifference, TIMEZONE } = require('../utils/timezone');
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ function getMealTypeByHour(hour) {
   if (hour >= 6 && hour < 12) return 'Завтрак';
   if (hour >= 12 && hour < 16) return 'Обед';
   if (hour >= 16 && hour < 21) return 'Ужин';
-  return 'Ночной перекус';
+  return 'Перекус';
 }
 
 // Получить локальный час из запроса или использовать серверное время
@@ -27,7 +28,7 @@ function getLocalHour(req) {
   if (req.body && req.body.localHour !== undefined) {
     return parseInt(req.body.localHour);
   }
-  // Иначе используем серверное время (UTC)
+  // Иначе используем серверное время (уже в Asia/Almaty!)
   return new Date().getHours();
 }
 
@@ -166,6 +167,13 @@ router.get('/daily-summary', authMiddleware, async (req, res) => {
   try {
     const user = await Database.getUserById(req.userId);
     
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Пользователь не найден'
+      });
+    }
+    
     // Получаем дату из query параметра или используем сегодня
     let targetDate = new Date();
     if (req.query.date) {
@@ -187,7 +195,7 @@ router.get('/daily-summary', authMiddleware, async (req, res) => {
       }
     });
     
-    const remainingCalories = user.dailyCalories - totalCalories;
+    const remainingCalories = (user.dailyCalories || 2000) - totalCalories;
     
     // Преобразуем Mongoose документы в объекты с виртуальными полями
     const foodsWithImages = dayFoods.map(food => food.toObject ? food.toObject() : food);
@@ -196,10 +204,10 @@ router.get('/daily-summary', authMiddleware, async (req, res) => {
       success: true,
       data: {
         totalCalories,
-        targetCalories: user.dailyCalories,
+        targetCalories: user.dailyCalories || 2000,
         remainingCalories,
         consumedMacros,
-        targetMacros: user.macros,
+        targetMacros: user.macros || { carbs: 270, protein: 130, fat: 58 },
         foods: foodsWithImages
       }
     });
@@ -264,6 +272,11 @@ router.get('/monthly-active-days', authMiddleware, async (req, res) => {
       });
     }
     
+    // Получаем пользователя для проверки lastVisit
+    const user = await Database.getUserById(req.userId);
+    const lastVisit = user.lastVisit ? new Date(user.lastVisit) : null;
+    const lastVisitDay = lastVisit ? getLocalDay(lastVisit) : null;
+    
     // Используем UTC даты для корректной работы с часовыми поясами
     const startDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, 1));
     const endDate = new Date(Date.UTC(parseInt(year), parseInt(month), 0, 23, 59, 59, 999));
@@ -272,12 +285,28 @@ router.get('/monthly-active-days', authMiddleware, async (req, res) => {
     const currentDate = new Date(startDate);
     
     while (currentDate <= endDate) {
+      let isActive = false;
+      
+      // Проверяем наличие записей еды
       const foods = await Database.getFoodsByDate(req.userId, currentDate);
       if (foods && foods.length > 0) {
+        isActive = true;
+      }
+      
+      // Проверяем, совпадает ли lastVisit с этим днём
+      if (!isActive && lastVisitDay) {
+        const checkDay = getLocalDay(currentDate);
+        if (checkDay.getTime() === lastVisitDay.getTime()) {
+          isActive = true;
+        }
+      }
+      
+      if (isActive) {
         // Используем UTC дату для строки
         const dateStr = currentDate.toISOString().split('T')[0];
         activeDays.push(dateStr);
       }
+      
       // Переходим к следующему дню в UTC
       currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
@@ -668,40 +697,50 @@ router.post('/analyze-description', authMiddleware, async (req, res) => {
     });
     
     // Обновляем streak (активность пользователя)
-    const user = Database.getUserById(req.userId);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const user = await Database.getUserById(req.userId);
+    const now = new Date(); // UTC время для сохранения в базу
+    const today = getTodayStart();
     const lastVisit = user.lastVisit ? new Date(user.lastVisit) : null;
-    const lastVisitDay = lastVisit ? new Date(lastVisit.getFullYear(), lastVisit.getMonth(), lastVisit.getDate()) : null;
+    const lastVisitDay = lastVisit ? getLocalDay(lastVisit) : null;
     
     let newStreak = user.streak || 0;
     let maxStreak = user.maxStreak || 0;
+    let shouldUpdate = false;
     
     if (lastVisitDay) {
-      const diffDays = Math.floor((today - lastVisitDay) / (1000 * 60 * 60 * 24));
+      const diffDays = getDaysDifference(today, lastVisitDay);
       if (diffDays === 0) {
-        // Сегодня уже была активность
+        // Сегодня уже была активность - не обновляем
+        shouldUpdate = false;
       } else if (diffDays === 1) {
+        // Вчера была активность - продолжаем серию
         newStreak = (newStreak === 0) ? 1 : newStreak + 1;
         if (newStreak > maxStreak) {
           maxStreak = newStreak;
         }
+        shouldUpdate = true;
       } else {
+        // Пропустили 2+ дня - начинаем новую серию
         newStreak = 1;
         if (maxStreak === 0) {
           maxStreak = 1;
         }
+        shouldUpdate = true;
       }
     } else {
+      // Первый визит
       newStreak = 1;
       maxStreak = 1;
+      shouldUpdate = true;
     }
     
-    await Database.updateUser(req.userId, {
-      streak: newStreak,
-      maxStreak: maxStreak,
-      lastVisit: now.toISOString()
-    });
+    if (shouldUpdate) {
+      await Database.updateUser(req.userId, {
+        streak: newStreak,
+        maxStreak: maxStreak,
+        lastVisit: now.toISOString()
+      });
+    }
     
     res.json({ 
       success: true, 
@@ -735,96 +774,97 @@ router.post('/analyze-image', authMiddleware, checkPhotoLimit, async (req, res) 
       ? image.split('base64,')[1] 
       : image;
     
-    console.log(`📸 Получено изображение, размер base64: ${(base64Data.length / 1024).toFixed(2)} KB`);
+    // ✅ ПРОВЕРКА РАЗМЕРА: максимум 25 MB (защита от модов)
+    const buffer = Buffer.from(base64Data, 'base64');
+    const fileSizeMB = buffer.length / (1024 * 1024);
+    const maxSizeMB = 25;
     
-    // Проверяем размер для free пользователей
-    try {
-      checkBase64SizeLimit(req.userId, base64Data);
-    } catch (error) {
-      if (error.statusCode === 413) {
-        console.log(`❌ Изображение слишком большое: ${error.fileSize}`);
-        return res.status(413).json({
-          success: false,
-          message: error.message,
-          fileSize: error.fileSize
-        });
-      }
-      throw error;
+    if (fileSizeMB > maxSizeMB) {
+      console.log(`❌ Файл слишком большой: ${fileSizeMB.toFixed(2)} MB (лимит ${maxSizeMB} MB)`);
+      return res.status(413).json({
+        success: false,
+        message: `Превышен размер файла: ${fileSizeMB.toFixed(1)} MB. Максимум ${maxSizeMB} MB.`
+      });
     }
     
-    // Сжимаем изображение
-    const compressedBuffer = await compressBase64Image(base64Data);
-    base64Data = compressedBuffer.toString('base64');
+    console.log(`📸 Изображение принято: ${fileSizeMB.toFixed(2)} MB`);
+    
+    // ✅ НЕ СЖИМАЕМ! Клиент уже сжал, сразу отправляем в AI
 
     const { analyzeImageFood } = require('../utils/ai');
     
     // Анализируем через Gemini Vision
     const foodData = await analyzeImageFood(base64Data);
     
-    console.log('📊 AI Analysis Result:', foodData);
-    
     // Определяем тип приема пищи по времени (используем локальное время клиента)
     const hour = getLocalHour(req);
     const mealType = getMealTypeByHour(hour);
     
-    // Добавляем блюдо в дневник (БЕЗ эмодзи, только название)
+    // Добавляем блюдо в дневник
     const name = foodData.name || 'Неизвестное блюдо';
     const foodToSave = {
       userId: req.userId,
-      name: name, // Без эмодзи!
+      name: name,
       calories: foodData.calories || 0,
       macros: foodData.macros || { protein: 0, fat: 0, carbs: 0 },
       healthScore: foodData.healthScore !== undefined ? foodData.healthScore : 50,
-      imageUrl: `data:image/jpeg;base64,${base64Data}`, // ✅ Base64 для MongoDB!
+      imageUrl: `data:image/jpeg;base64,${base64Data}`,
       mealType
     };
     
-    console.log('💾 Saving food to database (with base64 image)');
     const newFood = await Database.createFood(foodToSave);
-    console.log('✅ Food saved with ID:', newFood._id);
     
     // Преобразуем в объект с виртуальными полями
     const foodObject = newFood.toObject();
-    console.log('🖼️ Food has imageUrl:', !!foodObject.imageUrl);
     
     // Увеличиваем счетчик использования
     await Database.incrementUserUsage(req.userId, 'photos');
     
     // Обновляем streak (активность пользователя)
     const user = await Database.getUserById(req.userId);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const now = new Date(); // UTC время для сохранения в базу
+    const today = getTodayStart();
     const lastVisit = user.lastVisit ? new Date(user.lastVisit) : null;
-    const lastVisitDay = lastVisit ? new Date(lastVisit.getFullYear(), lastVisit.getMonth(), lastVisit.getDate()) : null;
+    const lastVisitDay = lastVisit ? getLocalDay(lastVisit) : null;
     
     let newStreak = user.streak || 0;
     let maxStreak = user.maxStreak || 0;
+    let shouldUpdate = false;
     
     if (lastVisitDay) {
-      const diffDays = Math.floor((today - lastVisitDay) / (1000 * 60 * 60 * 24));
+      const diffDays = getDaysDifference(today, lastVisitDay);
       if (diffDays === 0) {
-        // Сегодня уже была активность
+        // Сегодня уже была активность - не обновляем
+        shouldUpdate = false;
       } else if (diffDays === 1) {
+        // Вчера была активность - продолжаем серию
         newStreak = (newStreak === 0) ? 1 : newStreak + 1;
         if (newStreak > maxStreak) {
           maxStreak = newStreak;
         }
+        shouldUpdate = true;
       } else {
+        // Пропустили 2+ дня - начинаем новую серию
         newStreak = 1;
         if (maxStreak === 0) {
           maxStreak = 1;
         }
+        shouldUpdate = true;
       }
     } else {
+      // Первый визит
       newStreak = 1;
       maxStreak = 1;
+      shouldUpdate = true;
     }
     
-    await Database.updateUser(req.userId, {
-      streak: newStreak,
-      maxStreak: maxStreak,
-      lastVisit: now.toISOString()
-    });
+    if (shouldUpdate) {
+      await Database.updateUser(req.userId, {
+        streak: newStreak,
+        maxStreak: maxStreak,
+        lastVisit: now.toISOString()
+      });
+    }
     
     res.json({ 
       success: true, 

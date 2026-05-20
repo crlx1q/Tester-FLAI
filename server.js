@@ -1,4 +1,9 @@
 require('dotenv').config();
+
+// ⚠️ ВАЖНО: Устанавливаем часовой пояс ГЛОБАЛЬНО для всего приложения
+// Теперь new Date() везде будет возвращать время в Asia/Almaty!
+process.env.TZ = process.env.TIMEZONE || 'Asia/Almaty';
+
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -63,6 +68,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'FoodLens AI Server is running' });
 });
 
+// Admin panel route
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
@@ -75,7 +85,7 @@ app.use((err, req, res, next) => {
 // Запуск сервера с подключением к MongoDB
 const startServer = async () => {
   try {
-    // Подключаемся к MongoDB Atlas
+    // Подключаемся к локальной MongoDB
     await connectDB();
     
     // Загружаем Gemini API ключ из БД
@@ -104,6 +114,22 @@ const startServer = async () => {
     app.listen(PORT, () => {
       console.log(`🚀 FoodLens AI Server запущен на порту ${PORT}`);
       console.log(`📡 API доступен по адресу: http://localhost:${PORT}/api`);
+      
+      // Информация о времени и часовом поясе сервера
+      const timezone = process.env.TIMEZONE || 'Asia/Almaty';
+      const now = new Date();
+      const gmtTime = now.toUTCString();
+      const localTime = now.toLocaleString('ru-RU', { timeZone: timezone });
+      
+      // Вычисляем GMT offset для указанного часового пояса
+      const tzDate = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
+      const utcDate = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+      const gmtOffset = (tzDate - utcDate) / (1000 * 60 * 60);
+      const offsetStr = gmtOffset >= 0 ? `+${gmtOffset}` : `${gmtOffset}`;
+      
+      console.log(`🕐 Часовой пояс: ${timezone} (GMT${offsetStr})`);
+      console.log(`🌍 GMT время: ${gmtTime}`);
+      console.log(`📅 Текущая дата/время: ${localTime}`);
     });
   } catch (error) {
     console.error('❌ Не удалось запустить сервер:', error);
