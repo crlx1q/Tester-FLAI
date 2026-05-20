@@ -18,6 +18,8 @@ const recipesRoutes = require('./routes/recipes');
 const streakRoutes = require('./routes/streak');
 const onboardingRoutes = require('./routes/onboarding');
 const adminRoutes = require('./routes/admin');
+const friendsRoutes = require('./routes/friends');
+const notificationsRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -62,6 +64,8 @@ app.use('/api/recipes', recipesRoutes);
 app.use('/api/streak', streakRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/friends', friendsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

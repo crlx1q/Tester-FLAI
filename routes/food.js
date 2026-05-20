@@ -8,7 +8,40 @@ const Database = require('../utils/database');
 const { analyzeFood, generateMealAdvice } = require('../services/ai-service');
 const { getCurrentDate, getTodayStart, getLocalDay, getDaysDifference, TIMEZONE } = require('../utils/timezone');
 
+const Friendship = require('../models/Friendship');
+const Notification = require('../models/Notification');
+
 const router = express.Router();
+
+// Уведомить друзей о новом блюде (async, не блокирует ответ)
+async function notifyFriendsAboutFood(userId, foodName) {
+  try {
+    const user = await Database.getUserById(userId);
+    if (!user) return;
+    
+    const friendships = await Friendship.find({
+      $or: [{ from: userId }, { to: userId }],
+      status: 'accepted'
+    });
+
+    const notifications = friendships.map(f => {
+      const friendId = f.from.toString() === userId ? f.to : f.from;
+      return {
+        userId: friendId,
+        type: 'friend_ate',
+        title: 'Друг поел',
+        body: `@${user.username || user.name} добавил: ${foodName}`,
+        data: { fromUserId: userId, foodName }
+      };
+    });
+
+    if (notifications.length > 0) {
+      await Notification.insertMany(notifications);
+    }
+  } catch (error) {
+    console.error('Notify friends error:', error.message);
+  }
+}
 
 // Утилита для определения типа приема пищи по времени
 function getMealTypeByHour(hour) {
@@ -116,6 +149,9 @@ router.post('/analyze', authMiddleware, upload.single('image'), checkFileSizeLim
     });
     
     const newFood = await Database.createFood(foodData);
+    
+    // Уведомляем друзей (не блокирует ответ)
+    notifyFriendsAboutFood(req.userId, foodData.name).catch(() => {});
     
     // Преобразуем в объект с виртуальными полями
     const foodObject = newFood.toObject();

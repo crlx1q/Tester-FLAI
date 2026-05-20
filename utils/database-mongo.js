@@ -20,6 +20,22 @@ class Database {
     return await User.findOne({ email: email.toLowerCase() });
   }
   
+  static async getUserByUsername(username) {
+    return await User.findOne({ username: username.toLowerCase() });
+  }
+  
+  static async searchUsersByUsername(query, excludeUserId = null) {
+    const filter = {
+      username: { $regex: query.toLowerCase(), $options: 'i' }
+    };
+    if (excludeUserId) {
+      filter._id = { $ne: excludeUserId };
+    }
+    return await User.find(filter)
+      .select('username name avatar avatarContentType streak goal')
+      .limit(20);
+  }
+  
   static async createUser(userData) {
     const user = new User(userData);
     await user.save();

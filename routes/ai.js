@@ -324,4 +324,29 @@ ${user.allergies && user.allergies.length > 0 ? `- Аллергии: ${user.alle
   }
 });
 
+// AI совет на следующий приём пищи
+router.get('/meal-advice', authMiddleware, async (req, res) => {
+  try {
+    const user = await Database.getUserById(req.userId);
+    const todayFoods = await Database.getFoodsByDate(req.userId, getCurrentDate());
+    
+    // Получаем час из query или текущий
+    const hour = req.query.hour ? parseInt(req.query.hour) : getCurrentDate().getHours();
+    
+    const { generateMealAdvice } = require('../services/ai-service');
+    const advice = await generateMealAdvice(user, todayFoods, hour);
+    
+    res.json({
+      success: true,
+      ...advice
+    });
+  } catch (error) {
+    console.error('Meal advice error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения совета AI'
+    });
+  }
+});
+
 module.exports = router;

@@ -1,6 +1,14 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    unique: true,
+    sparse: true,
+    lowercase: true,
+    trim: true,
+    match: [/^[a-z0-9_]{3,20}$/, 'Username может содержать только латинские буквы, цифры и _']
+  },
   email: {
     type: String,
     required: true,
@@ -123,7 +131,21 @@ const userSchema = new mongoose.Schema({
   }],
   favoriteRecipes: [{
     type: String
-  }]
+  }],
+  notificationSettings: {
+    friendActivity: { type: Boolean, default: true },
+    mealReminders: { type: Boolean, default: true },
+    updates: { type: Boolean, default: true }
+  },
+  fcmToken: {
+    type: String,
+    default: null
+  },
+  mealReminders: {
+    breakfast: { type: String, default: null },
+    lunch: { type: String, default: null },
+    dinner: { type: String, default: null }
+  }
 }, {
   timestamps: true
 });

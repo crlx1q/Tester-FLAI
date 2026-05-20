@@ -141,6 +141,27 @@ router.put('/', authMiddleware, async (req, res) => {
     delete updates.password;
     delete updates.email;
     
+    // Валидация username при обновлении
+    if (updates.username !== undefined) {
+      const username = updates.username.toLowerCase().trim();
+      if (username && !/^[a-z0-9_]{3,20}$/.test(username)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username может содержать только латинские буквы, цифры и _ (3-20 символов)'
+        });
+      }
+      if (username) {
+        const existingUser = await Database.getUserByUsername(username);
+        if (existingUser && existingUser._id.toString() !== req.userId) {
+          return res.status(400).json({
+            success: false,
+            message: 'Этот username уже занят'
+          });
+        }
+        updates.username = username;
+      }
+    }
+    
     const updatedUser = await Database.updateUser(req.userId, updates);
     
     if (!updatedUser) {

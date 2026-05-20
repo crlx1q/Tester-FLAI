@@ -8,7 +8,7 @@ const router = express.Router();
 // Регистрация
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, username } = req.body;
     
     // Проверка, включена ли регистрация
     const appSettings = await Database.getAppSettings();
@@ -25,6 +25,25 @@ router.post('/register', async (req, res) => {
         success: false,
         message: 'Все поля обязательны'
       });
+    }
+    
+    // Валидация username (если указан)
+    if (username) {
+      if (!/^[a-z0-9_]{3,20}$/.test(username.toLowerCase())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username может содержать только латинские буквы, цифры и _ (3-20 символов)'
+        });
+      }
+      
+      // Проверка уникальности username
+      const existingUsername = await Database.getUserByUsername(username.toLowerCase());
+      if (existingUsername) {
+        return res.status(400).json({
+          success: false,
+          message: 'Этот username уже занят'
+        });
+      }
     }
     
     // Проверка существующего пользователя
@@ -44,6 +63,7 @@ router.post('/register', async (req, res) => {
       email,
       password: hashedPassword,
       name,
+      username: username ? username.toLowerCase() : undefined,
       subscriptionType: 'free',
       isPro: false,
       subscriptionExpiresAt: null,
