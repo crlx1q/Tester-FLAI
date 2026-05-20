@@ -5,7 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const { checkPhotoLimit } = require('../middleware/usage-limits');
 const { checkFileSizeLimit, compressImage, compressBase64Image, checkBase64SizeLimit } = require('../middleware/image-compression');
 const Database = require('../utils/database');
-const { analyzeFood } = require('../services/ai-service');
+const { analyzeFood, generateMealAdvice } = require('../services/ai-service');
 const { getCurrentDate, getTodayStart, getLocalDay, getDaysDifference, TIMEZONE } = require('../utils/timezone');
 
 const router = express.Router();
@@ -949,6 +949,42 @@ router.post('/water', authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Ошибка сохранения данных о воде'
+    });
+  }
+});
+
+// AI совет по питанию
+router.get('/ai-advice', authMiddleware, async (req, res) => {
+  try {
+    // 1. Получаем пользователя
+    const user = await Database.getUserById(req.userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'Пользователь не найден'
+      });
+    }
+    
+    // 2. Получаем сегодняшние блюда
+    const todayFoods = await Database.getFoodsByDate(req.userId, new Date());
+    
+    // 3. Получаем час из query или серверное время
+    const hour = getLocalHour(req);
+    
+    // 4. Вызываем AI
+    const result = await generateMealAdvice(user, todayFoods, hour);
+    
+    // 5. Возвращаем результат
+    res.json({
+      success: true,
+      advice: result
+    });
+  } catch (error) {
+    console.error('AI advice error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения AI совета'
     });
   }
 });

@@ -384,8 +384,114 @@ async function chatWithAIImage(imagePath, message, context) {
   }
 }
 
+// Функция AI совета по питанию
+async function generateMealAdvice(user, todayFoods, hour) {
+  try {
+    // Считаем потреблённые калории и макросы
+    let consumedCalories = 0;
+    let consumedProtein = 0;
+    let consumedFat = 0;
+    let consumedCarbs = 0;
+
+    todayFoods.forEach(food => {
+      consumedCalories += food.calories || 0;
+      if (food.macros) {
+        consumedProtein += food.macros.protein || 0;
+        consumedFat += food.macros.fat || 0;
+        consumedCarbs += food.macros.carbs || 0;
+      }
+    });
+
+    // Считаем оставшиеся калории и макросы
+    const targetCalories = user.dailyCalories || 2000;
+    const targetMacros = user.macros || { protein: 130, fat: 58, carbs: 270 };
+    const remainingCalories = targetCalories - consumedCalories;
+    const remainingProtein = (targetMacros.protein || 130) - consumedProtein;
+    const remainingFat = (targetMacros.fat || 58) - consumedFat;
+    const remainingCarbs = (targetMacros.carbs || 270) - consumedCarbs;
+
+    // Определяем тип приёма пищи по часу
+    let mealType;
+    if (hour >= 6 && hour < 12) {
+      mealType = 'завтрак';
+    } else if (hour >= 12 && hour < 16) {
+      mealType = 'обед';
+    } else if (hour >= 16 && hour < 21) {
+      mealType = 'ужин';
+    } else {
+      mealType = 'перекус';
+    }
+
+    // Проверяем наличие API ключа
+    if (!process.env.AI_API_KEY || process.env.AI_API_KEY === 'your_gemini_api_key_here' || process.env.AI_API_KEY === 'your_ai_api_key_here') {
+      console.warn('AI API key not configured, using mock meal advice');
+      return {
+        advice: `Для ${mealType}а рекомендую сбалансированное блюдо с белком и овощами. У вас осталось ${Math.max(0, remainingCalories)} ккал на сегодня.`,
+        emoji: '🥗',
+        suggestedMeal: 'Куриная грудка с овощами'
+      };
+    }
+
+    // Формируем описание съеденного
+    const eatenDescription = todayFoods.length > 0
+      ? todayFoods.map(f => `${f.name}: ${f.calories}ккал`).join(', ')
+      : 'ничего не съедено';
+
+    // Формируем промпт
+    const userPrompt = `Съедено: ${eatenDescription}.
+Осталось: ${Math.max(0, remainingCalories)}ккал (Б${Math.max(0, remainingProtein)}г Ж${Math.max(0, remainingFat)}г У${Math.max(0, remainingCarbs)}г).
+Цель: ${user.goal || 'поддержание веса'}.
+Аллергии: ${user.allergies && user.allergies.length > 0 ? user.allergies.join(', ') : 'нет'}.
+Следующий приём: ${mealType}.
+
+Ответь СТРОГО в формате JSON: { "advice": "краткий совет", "emoji": "🥗", "suggestedMeal": "Название блюда" }`;
+
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${process.env.AI_API_KEY}`,
+      {
+        systemInstruction: {
+          parts: [{ text: 'Ты AI-нутрициолог. Дай ОДИН конкретный совет для следующего приёма пищи.' }]
+        },
+        contents: [{
+          role: 'user',
+          parts: [{ text: userPrompt }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 300
+        }
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const aiText = response.data.candidates[0].content.parts[0].text;
+    console.log('AI meal advice raw response:', aiText);
+
+    // Извлекаем JSON из ответа
+    let jsonMatch = aiText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+
+    return JSON.parse(aiText);
+
+  } catch (error) {
+    console.error('AI meal advice error:', error.message);
+    return {
+      advice: 'Старайтесь соблюдать баланс белков, жиров и углеводов в каждом приёме пищи.',
+      emoji: '🥗',
+      suggestedMeal: 'Куриная грудка с овощами'
+    };
+  }
+}
+
 module.exports = {
   analyzeFood,
   chatWithAI,
-  chatWithAIImage
+  chatWithAIImage,
+  generateMealAdvice
 };
