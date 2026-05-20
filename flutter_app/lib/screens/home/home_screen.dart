@@ -21,7 +21,6 @@ import '../../models/favorite_food_model.dart';
 import '../chat/chat_screen.dart';
 import '../../widgets/voice_recording_dialog.dart';
 import '../../widgets/usage_limit_badge.dart';
-import '../../widgets/animated_fire.dart';
 import '../../widgets/ai_advice_card.dart';
 import '../notifications/notifications_screen.dart';
 
@@ -576,6 +575,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final description = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         title: const Row(
           children: [
             Icon(Icons.edit, color: Colors.purple),
@@ -583,25 +583,27 @@ class _HomeScreenState extends State<HomeScreen> {
             Text('Описать блюдо'),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Опишите блюдо своими словами, а AI определит калории и БЖУ',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Описание блюда',
-                hintText: 'Например: Овсяная каша на молоке с бананом и медом',
-                border: OutlineInputBorder(),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Опишите блюдо своими словами, а AI определит калории и БЖУ',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
-              maxLines: 3,
-              minLines: 2,
-            ),
-          ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Описание блюда',
+                  hintText: 'Например: Овсяная каша на молоке с бананом и медом',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                minLines: 2,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1184,12 +1186,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatBadge(String label, String value, IconData icon) {
-    final isFireIcon = icon == Icons.local_fire_department;
     return Column(
       children: [
-        isFireIcon
-            ? const AnimatedFire(size: 24, isActive: true)
-            : Icon(icon, color: Colors.orange, size: 24),
+        Icon(icon, color: Colors.orange, size: 24),
         const SizedBox(height: 4),
         Text(
           value,
@@ -1370,10 +1369,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  AnimatedFire(
+                                  Icon(
+                                    Icons.local_fire_department,
                                     size: 18,
-                                    isActive: userProvider.streakStatus == 'active',
-                                    inactiveColor: const Color(0xFF94A3B8),
+                                    color: userProvider.streakStatus == 'active'
+                                        ? Colors.white
+                                        : const Color(0xFF94A3B8),
                                   ),
                                   const SizedBox(width: 4),
                                   Text(

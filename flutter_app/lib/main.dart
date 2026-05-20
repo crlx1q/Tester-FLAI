@@ -14,12 +14,18 @@ import 'screens/auth/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'utils/theme.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'services/firebase_messaging_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Инициализация локализации для дат
   await initializeDateFormatting('ru', null);
+  
+  // Firebase
+  await Firebase.initializeApp();
+  await FirebaseMessagingService.initialize();
   
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

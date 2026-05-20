@@ -135,7 +135,7 @@ class _AddRecipeScreenState extends State<AddRecipeScreen> {
           
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('🎉 Рецепт успешно создан!'),
+              content: Text('Рецепт успешно создан!'),
               backgroundColor: Colors.green,
             ),
           );

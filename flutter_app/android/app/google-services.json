@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "173497338689",
+    "project_id": "foodlensaipro",
+    "storage_bucket": "foodlensaipro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:173497338689:android:c15243fbbcd0a940c3afc0",
+        "android_client_info": {
+          "package_name": "com.example.foodlens_ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5pob99lQqkO05TMbea45gLnWSUXeX5Rk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -15,6 +15,9 @@ import '../../widgets/pro_badge.dart';
 import '../../widgets/update_notification_widget.dart';
 import 'edit_profile_screen.dart';
 import 'subscription_details_screen.dart';
+import 'my_foods_screen.dart';
+import 'daily_summary_screen.dart';
+import '../notifications/notification_settings_screen.dart';
 
 class NewProfileScreen extends StatefulWidget {
   const NewProfileScreen({super.key});
@@ -633,7 +636,7 @@ class _NewProfileScreenState extends State<NewProfileScreen> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Рекорд: ${user.maxStreak} дней 🏆',
+                                  'Рекорд: ${user.maxStreak} дней',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.white.withOpacity(0.95),
@@ -768,7 +771,10 @@ class _NewProfileScreenState extends State<NewProfileScreen> {
               icon: Icons.restaurant,
               label: 'Мои блюда',
               onTap: () {
-                // Navigate to my foods
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MyFoodsScreen()),
+                );
               },
             ),
             const SizedBox(height: 12),
@@ -777,15 +783,23 @@ class _NewProfileScreenState extends State<NewProfileScreen> {
               icon: Icons.summarize,
               label: 'Дневная сводка AI',
               onTap: () {
-                // Navigate to daily summary
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DailySummaryScreen()),
+                );
               },
             ),
             const SizedBox(height: 12),
             _buildActionButton(
               context,
               icon: Icons.notifications_outlined,
-              label: 'Уведомления',
-              onTap: () {},
+              label: 'Настройки уведомлений',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                );
+              },
             ),
             const SizedBox(height: 12),
             _buildActionButton(

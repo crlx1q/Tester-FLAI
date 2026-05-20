@@ -738,6 +738,19 @@ class ApiHelper {
     }
   }
 
+  // AI daily summary (Pro only)
+  static Future<Map<String, dynamic>> getAiDailySummary() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/ai/daily-summary'),
+        headers: await _getHeaders(),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return {'success': false, 'message': 'Ошибка получения дневной сводки'};
+    }
+  }
+
   // Version check endpoint
   static Future<Map<String, dynamic>> checkVersion(
       String currentVersion) async {

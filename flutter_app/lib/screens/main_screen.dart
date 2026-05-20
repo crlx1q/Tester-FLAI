@@ -24,20 +24,21 @@ class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
   bool _isLoading = true;
   bool _needsOnboarding = false;
-  int _unreadNotifications = 0;
+  int _pendingRequestCount = 0;
 
   @override
   void initState() {
     super.initState();
     _checkOnboarding();
-    _loadUnreadCount();
+    _loadPendingRequestCount();
   }
 
-  Future<void> _loadUnreadCount() async {
-    final result = await ApiHelper.getUnreadNotificationCount();
+  Future<void> _loadPendingRequestCount() async {
+    final result = await ApiHelper.getFriendRequests();
     if (mounted && result['success']) {
+      final requests = result['requests'] as List? ?? [];
       setState(() {
-        _unreadNotifications = result['count'] ?? 0;
+        _pendingRequestCount = requests.length;
       });
     }
   }
@@ -131,9 +132,13 @@ class _MainScreenState extends State<MainScreen> {
                   if (index == 4 && updateProvider.hasUnreadUpdate) {
                     updateProvider.markUpdateAsSeen();
                   }
-                  // Обновляем счётчик непрочитанных при возврате
+                  // Обновляем счётчик запросов дружбы при переходе
+                  if (index == 3) {
+                    _loadPendingRequestCount();
+                  }
+                  // Обновляем при возврате на Главную
                   if (index == 0) {
-                    _loadUnreadCount();
+                    _loadPendingRequestCount();
                   }
                 },
                 destinations: [
@@ -154,14 +159,14 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                   NavigationDestination(
                     icon: Badge(
-                      isLabelVisible: _unreadNotifications > 0,
-                      label: _unreadNotifications > 0 ? Text('$_unreadNotifications', style: const TextStyle(fontSize: 10, color: Colors.white)) : null,
+                      isLabelVisible: _pendingRequestCount > 0,
+                      label: _pendingRequestCount > 0 ? Text('$_pendingRequestCount', style: const TextStyle(fontSize: 10, color: Colors.white)) : null,
                       backgroundColor: Colors.red,
                       child: const Icon(Icons.people_outline),
                     ),
                     selectedIcon: Badge(
-                      isLabelVisible: _unreadNotifications > 0,
-                      label: _unreadNotifications > 0 ? Text('$_unreadNotifications', style: const TextStyle(fontSize: 10, color: Colors.white)) : null,
+                      isLabelVisible: _pendingRequestCount > 0,
+                      label: _pendingRequestCount > 0 ? Text('$_pendingRequestCount', style: const TextStyle(fontSize: 10, color: Colors.white)) : null,
                       backgroundColor: Colors.red,
                       child: const Icon(Icons.people),
                     ),

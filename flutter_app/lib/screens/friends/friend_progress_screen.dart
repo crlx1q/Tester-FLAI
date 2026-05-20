@@ -300,8 +300,7 @@ class _FriendProgressScreenState extends State<FriendProgressScreen> {
   Widget _buildWaterComparison(bool isDark) {
     final water = _todayData!['water'] ?? 0;
     final waterTarget = _friendData!['waterTarget'] ?? 2000;
-    final glasses = (water / 250).floor();
-    final targetGlasses = (waterTarget / 250).ceil();
+    final progress = waterTarget > 0 ? (water / waterTarget).clamp(0.0, 1.0) : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -310,22 +309,31 @@ class _FriendProgressScreenState extends State<FriendProgressScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.water_drop, color: Colors.blue, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Вода', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87)),
-                Text('$glasses / $targetGlasses стаканов', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black45)),
-              ],
-            ),
+          Row(
+            children: [
+              const Icon(Icons.water_drop, color: Colors.blue, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Вода', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87)),
+              ),
+              Text(
+                '$water / $waterTarget мл',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black54),
+              ),
+            ],
           ),
-          Text(
-            '${water} мл',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.blue.withValues(alpha: 0.12),
+              valueColor: const AlwaysStoppedAnimation(Colors.blue),
+              minHeight: 8,
+            ),
           ),
         ],
       ),
