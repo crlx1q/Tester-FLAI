@@ -42,7 +42,11 @@ async function checkMealReminders() {
         
         for (const user of users) {
           if (user.fcmToken) {
-            await sendPushNotification(user.fcmToken, msg.title, msg.body, { type: 'meal_reminder', meal });
+            await sendPushNotification(user.fcmToken, msg.title, msg.body, { 
+              type: 'meal_reminder', 
+              meal,
+              showSnooze: 'true' // Signal to client to show snooze action
+            });
           }
         }
       }

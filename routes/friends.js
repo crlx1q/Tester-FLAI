@@ -4,6 +4,8 @@ const Friendship = require('../models/Friendship');
 const Notification = require('../models/Notification');
 const Database = require('../utils/database');
 const authMiddleware = require('../middleware/auth');
+const { sendPushNotification } = require('../services/firebase');
+const User = require('../models/User');
 
 // Поиск пользователей по username
 router.get('/search', authMiddleware, async (req, res) => {
@@ -86,13 +88,22 @@ router.post('/request/:userId', authMiddleware, async (req, res) => {
 
     // Создаём уведомление для получателя
     const sender = await Database.getUserById(req.userId);
+    const notifTitle = 'Новый запрос в друзья';
+    const notifBody = `@${sender.username || sender.name} хочет добавить вас в друзья`;
+    
     await new Notification({
       userId: targetUserId,
       type: 'friend_request',
-      title: 'Новый запрос в друзья',
-      body: `@${sender.username || sender.name} хочет добавить вас в друзья`,
+      title: notifTitle,
+      body: notifBody,
       data: { friendshipId: friendship._id, fromUserId: req.userId }
     }).save();
+
+    // Send FCM push if user has friendActivity notifications enabled
+    const targetUser = await User.findById(targetUserId).select('fcmToken notificationSettings').lean();
+    if (targetUser?.fcmToken && targetUser?.notificationSettings?.friendActivity !== false) {
+      await sendPushNotification(targetUser.fcmToken, notifTitle, notifBody, { type: 'friend_request' });
+    }
 
     res.json({ success: true, message: 'Запрос отправлен', friendshipId: friendship._id });
   } catch (error) {
@@ -119,13 +130,22 @@ router.post('/accept/:friendshipId', authMiddleware, async (req, res) => {
 
     // Уведомление отправителю
     const accepter = await Database.getUserById(req.userId);
+    const notifTitle = 'Запрос принят';
+    const notifBody = `@${accepter.username || accepter.name} принял(а) ваш запрос в друзья`;
+    
     await new Notification({
       userId: friendship.from,
       type: 'friend_accepted',
-      title: 'Запрос принят',
-      body: `@${accepter.username || accepter.name} принял(а) ваш запрос в друзья`,
+      title: notifTitle,
+      body: notifBody,
       data: { friendshipId: friendship._id }
     }).save();
+
+    // Send FCM push if user has friendActivity notifications enabled
+    const senderUser = await User.findById(friendship.from).select('fcmToken notificationSettings').lean();
+    if (senderUser?.fcmToken && senderUser?.notificationSettings?.friendActivity !== false) {
+      await sendPushNotification(senderUser.fcmToken, notifTitle, notifBody, { type: 'friend_accepted' });
+    }
 
     res.json({ success: true, message: 'Запрос принят' });
   } catch (error) {

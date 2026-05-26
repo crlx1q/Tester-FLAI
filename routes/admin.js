@@ -3,6 +3,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const Database = require('../utils/database-mongo');
+const { sendPushToMany } = require('../services/firebase');
+const User = require('../models/User');
 
 const router = express.Router();
 
@@ -277,6 +279,26 @@ router.post('/settings/update-version', checkAdminAuth, async (req, res) => {
       updateDescription: description || '',
       hasUpdate: true
     });
+    
+    // Send push notification to all users who have updates enabled
+    try {
+      const usersWithUpdates = await User.find({
+        fcmToken: { $ne: null, $exists: true },
+        'notificationSettings.updates': { $ne: false }
+      }).select('fcmToken').lean();
+      
+      if (usersWithUpdates.length > 0) {
+        await sendPushToMany(
+          usersWithUpdates,
+          'Новое обновление FoodLens AI',
+          `Доступна версия ${version}. ${description || 'Обновите приложение!'}`,
+          { type: 'app_update', version }
+        );
+        console.log(`Update notification sent to ${usersWithUpdates.length} users`);
+      }
+    } catch (pushError) {
+      console.error('Update push error:', pushError.message);
+    }
     
     res.json({
       success: true,
