@@ -3,14 +3,40 @@ const path = require('path');
 const fs = require('fs');
 
 // Initialize Firebase Admin SDK
-const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || 
-  path.join(__dirname, '..', 'foodlensaipro-firebase-adminsdk-fbsvc-ccd8330dee.json');
-
 let firebaseInitialized = false;
 
-if (fs.existsSync(serviceAccountPath)) {
+function getServiceAccount() {
+  // Option 1: ENV variables (for hosting without JSON file)
+  if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
+    return {
+      type: process.env.FIREBASE_TYPE || 'service_account',
+      project_id: process.env.FIREBASE_PROJECT_ID,
+      private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+      private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      client_email: process.env.FIREBASE_CLIENT_EMAIL,
+      client_id: process.env.FIREBASE_CLIENT_ID,
+      auth_uri: process.env.FIREBASE_AUTH_URI || 'https://accounts.google.com/o/oauth2/auth',
+      token_uri: process.env.FIREBASE_TOKEN_URI || 'https://oauth2.googleapis.com/token',
+      auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_CERT_URL || 'https://www.googleapis.com/oauth2/v1/certs',
+      client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
+      universe_domain: 'googleapis.com',
+    };
+  }
+
+  // Option 2: JSON file path
+  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || 
+    path.join(__dirname, '..', 'foodlensaipro-firebase-adminsdk-fbsvc-ccd8330dee.json');
+  
+  if (fs.existsSync(serviceAccountPath)) {
+    return require(serviceAccountPath);
+  }
+
+  return null;
+}
+
+const serviceAccount = getServiceAccount();
+if (serviceAccount) {
   try {
-    const serviceAccount = require(serviceAccountPath);
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
@@ -20,7 +46,7 @@ if (fs.existsSync(serviceAccountPath)) {
     console.error('Firebase Admin SDK init error:', error.message);
   }
 } else {
-  console.warn('Firebase service account not found at:', serviceAccountPath);
+  console.warn('Firebase service account not found (no ENV vars and no JSON file)');
 }
 
 /**
