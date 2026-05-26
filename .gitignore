@@ -2,3 +2,4 @@ node_modules/
 .env
 uploads/*
 !uploads/.gitkeep
+foodlensaipro-firebase-adminsdk-fbsvc-ccd8330dee.json

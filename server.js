@@ -114,6 +114,14 @@ const startServer = async () => {
       console.error('⚠️ Ошибка проверки данных пользователей:', error.message);
     }
     
+    // Запускаем планировщик напоминаний о еде
+    try {
+      const { startMealReminderScheduler } = require('./services/meal-reminders');
+      startMealReminderScheduler();
+    } catch (error) {
+      console.error('⚠️ Ошибка запуска планировщика напоминаний:', error.message);
+    }
+    
     // Запускаем сервер только после успешного подключения к БД
     app.listen(PORT, () => {
       console.log(`🚀 FoodLens AI Server запущен на порту ${PORT}`);
