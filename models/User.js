@@ -117,7 +117,8 @@ const userSchema = new mongoose.Schema({
     date: { type: String, default: null },
     photosCount: { type: Number, default: 0 },
     messagesCount: { type: Number, default: 0 },
-    recipesCount: { type: Number, default: 0 }
+    recipesCount: { type: Number, default: 0 },
+    mealAdviceCount: { type: Number, default: 0 }
   },
   favoriteFoods: [{
     name: String,
