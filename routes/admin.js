@@ -168,7 +168,8 @@ router.get('/stats', checkAdminAuth, async (req, res) => {
       todayActivity: {
         totalPhotos: 0,
         totalMessages: 0,
-        totalRecipes: 0
+        totalRecipes: 0,
+        totalMealAdvice: 0
       }
     };
     
@@ -180,6 +181,7 @@ router.get('/stats', checkAdminAuth, async (req, res) => {
         stats.todayActivity.totalPhotos += user.usage.photosCount || 0;
         stats.todayActivity.totalMessages += user.usage.messagesCount || 0;
         stats.todayActivity.totalRecipes += user.usage.recipesCount || 0;
+        stats.todayActivity.totalMealAdvice += user.usage.mealAdviceCount || 0;
       }
     });
     

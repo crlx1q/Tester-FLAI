@@ -393,6 +393,11 @@ router.get('/limits', authMiddleware, async (req, res) => {
           max: limits.recipes,
           remaining: Math.max(0, limits.recipes - usage.recipesCount)
         },
+        mealAdvice: {
+          current: usage.mealAdviceCount || 0,
+          max: limits.mealAdvice,
+          remaining: Math.max(0, limits.mealAdvice - (usage.mealAdviceCount || 0))
+        },
         date: usage.date
       }
     });
