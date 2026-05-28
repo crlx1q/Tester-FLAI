@@ -662,10 +662,10 @@
             }
             
             const isPro = user.subscriptionType === 'pro';
-            const usage = user.usage || { photosCount: 0, messagesCount: 0, recipesCount: 0 };
+            const usage = user.usage || { photosCount: 0, messagesCount: 0, recipesCount: 0, mealAdviceCount: 0 };
             const limits = isPro 
-                ? { photos: 50, messages: 100, recipes: 30 } 
-                : { photos: 2, messages: 10, recipes: 1 };
+                ? { photos: 50, messages: 100, recipes: 30, mealAdvice: 20 } 
+                : { photos: 2, messages: 10, recipes: 1, mealAdvice: 5 };
             
             // Calculate days remaining (используем поле с сервера для единообразия)
             let daysRemainingText = '';
@@ -706,6 +706,7 @@
                     ${createUsageBar('camera', 'Фото', usage.photosCount, limits.photos)}
                     ${createUsageBar('message-circle', 'Сообщения', usage.messagesCount, limits.messages)}
                     ${createUsageBar('utensils', 'Рецепты', usage.recipesCount, limits.recipes)}
+                    ${createUsageBar('sparkles', 'Советы AI', usage.mealAdviceCount || 0, limits.mealAdvice)}
                 </div>
             `;
             container.appendChild(card);
