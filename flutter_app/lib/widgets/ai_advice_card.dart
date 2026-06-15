@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../providers/limits_provider.dart';
+import '../providers/auth_provider.dart';
 import '../utils/api_helper.dart';
 
 class AiAdviceCard extends StatefulWidget {
@@ -75,6 +78,16 @@ class _AiAdviceCardState extends State<AiAdviceCard> {
     await prefs.setString(_cacheKey, data);
   }
 
+  Future<void> _refreshLimits() async {
+    if (!mounted) return;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final limitsProvider = Provider.of<LimitsProvider>(context, listen: false);
+    final token = await authProvider.getToken();
+    if (token != null) {
+      limitsProvider.refresh(token, ApiHelper.baseUrl);
+    }
+  }
+
   Future<void> _loadAdvice() async {
     if (_isLoading) return;
     setState(() {
@@ -97,6 +110,8 @@ class _AiAdviceCardState extends State<AiAdviceCard> {
             _isLoading = false;
           });
           _saveToCache();
+          // Обновляем глобальные лимиты
+          _refreshLimits();
         } else {
           setState(() {
             _errorMessage = result['message'] ?? 'Ошибка';

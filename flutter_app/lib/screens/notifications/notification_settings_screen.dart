@@ -240,29 +240,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                           : const Text('Сохранить', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // Info note
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline, size: 18, color: isDark ? Colors.white54 : Colors.black45),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Push-уведомления требуют подключения Firebase. Локальные напоминания работают автономно.',
-                            style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.black45),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                   const SizedBox(height: 24),
                 ],
               ),

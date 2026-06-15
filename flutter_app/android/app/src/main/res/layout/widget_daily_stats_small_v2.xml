@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Small Widget 2x2: Time, Meal Reminder, Calories + Water + Action buttons -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="2dp">
+
+    <LinearLayout
+        android:id="@+id/widget_small_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:gravity="center"
+        android:background="@drawable/widget_bg_dark">
+
+    <!-- Top section: Time and Meal Reminder -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+        
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@mipmap/launcher_icon" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="6dp">
+
+            <TextClock
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format24Hour="HH:mm"
+                android:format12Hour="h:mm a"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary" />
+
+            <TextView
+                android:id="@+id/tv_meal_reminder"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Запиши еду!"
+                android:textSize="10sp"
+                android:textColor="#FF6B35"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Calories section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="4dp">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_widget_fire2" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="bottom"
+            android:layout_marginStart="6dp">
+
+            <TextView
+                android:id="@+id/tv_calories"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1250"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/tv_calories_target"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="/2000 ккал"
+                android:textSize="10sp"
+                android:layout_marginStart="2dp"
+                android:layout_marginBottom="2dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_text_secondary" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp">
+        <ProgressBar
+            android:id="@+id/progress_calories"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:max="100"
+            android:progress="62"
+            android:progressDrawable="@drawable/widget_progress_fill" />
+        <ProgressBar
+            android:id="@+id/progress_calories_full"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="6dp"
+            android:max="100"
+            android:progress="100"
+            android:visibility="gone"
+            android:progressDrawable="@drawable/widget_progress_fill_full" />
+    </FrameLayout>
+
+    <!-- Water section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_widget_water2" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="bottom"
+            android:layout_marginStart="6dp">
+
+            <TextView
+                android:id="@+id/tv_water"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1500"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#4FC3F7"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/tv_water_target"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="/1700 мл"
+                android:textSize="10sp"
+                android:layout_marginStart="2dp"
+                android:layout_marginBottom="2dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_text_secondary" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/progress_water"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginBottom="8dp"
+        android:max="100"
+        android:progress="0"
+        android:progressDrawable="@drawable/widget_progress_fill_water" />
+
+    <!-- Bottom row: + Water button + Camera button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <!-- Add Water button -->
+        <LinearLayout
+            android:id="@+id/btn_small_add_water"
+            android:layout_width="0dp"
+            android:layout_height="34dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:background="@drawable/widget_btn_bg_blue"
+            android:layout_marginEnd="6dp">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_widget_water2"
+                android:layout_marginEnd="4dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+100"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <!-- Camera button -->
+        <LinearLayout
+            android:id="@+id/btn_small_camera"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:gravity="center"
+            android:background="@drawable/widget_camera_btn_bg">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:src="@drawable/ic_widget_camera2" />
+        </LinearLayout>
+    </LinearLayout>
+
+    </LinearLayout>
+</FrameLayout>

@@ -417,18 +417,18 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
         // Macros row
         Row(
           children: [
-            _buildMacroCard(isDark, 'Белки', totalMacros['protein'] ?? 0, targetMacros['protein'] ?? 100, const Color(0xFF3B82F6)),
+            _buildMacroCard(isDark, 'Белки', totalMacros['protein'] ?? 0, targetMacros['protein'] ?? 100, const Color(0xFFEF5350), Icons.fitness_center),
             const SizedBox(width: 8),
-            _buildMacroCard(isDark, 'Жиры', totalMacros['fat'] ?? 0, targetMacros['fat'] ?? 70, const Color(0xFFF59E0B)),
+            _buildMacroCard(isDark, 'Жиры', totalMacros['fat'] ?? 0, targetMacros['fat'] ?? 70, const Color(0xFFFFCA28), Icons.cookie),
             const SizedBox(width: 8),
-            _buildMacroCard(isDark, 'Углеводы', totalMacros['carbs'] ?? 0, targetMacros['carbs'] ?? 250, const Color(0xFF10B981)),
+            _buildMacroCard(isDark, 'Углеводы', totalMacros['carbs'] ?? 0, targetMacros['carbs'] ?? 250, const Color(0xFF66BB6A), Icons.bakery_dining),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildMacroCard(bool isDark, String label, num current, num target, Color color) {
+  Widget _buildMacroCard(bool isDark, String label, num current, num target, Color color, IconData icon) {
     final progress = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
     return Expanded(
       child: Container(
@@ -440,7 +440,14 @@ class _DailySummaryScreenState extends State<DailySummaryScreen> {
         ),
         child: Column(
           children: [
-            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white54 : Colors.black45)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, size: 12, color: color),
+                const SizedBox(width: 4),
+                Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white54 : Colors.black45)),
+              ],
+            ),
             const SizedBox(height: 8),
             SizedBox(
               width: 40,

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FoodLens AI</string>
+    <string name="widget_description">Быстрые действия: вода, камера, открыть приложение</string>
+    <string name="widget_name">FoodLens Быстрые действия</string>
+    <string name="widget_small_description">Мини статистика: калории и вода за сегодня</string>
+    <string name="widget_small_name">FoodLens Мини</string>
+    <string name="widget_bar_description">Полная статистика дня: калории, БЖУ, вода</string>
+    <string name="widget_bar_name">FoodLens Статистика</string>
+    <string name="widget_main_bar_description">Главный виджет с полной статистикой и быстрыми действиями</string>
+</resources>

@@ -4,11 +4,11 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image/image.dart' as img;
+import '../services/widget_refresh_service.dart';
 
 class ApiHelper {
-  // IP адрес вашего компьютера в локальной сети
-  static const String baseUrl = 'https://foodlensai.reflexai.pro/api';
-  static const String mediaUrl = 'https://foodlensai.reflexai.pro';
+  static const String baseUrl = 'https://foodlensai.crlx1q.com/api';
+  static const String mediaUrl = 'https://foodlensai.crlx1q.com';
 
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -29,6 +29,17 @@ class ApiHelper {
     }
 
     return headers;
+  }
+
+  static Map<String, dynamic> _handleResponse(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return json.decode(utf8.decode(response.bodyBytes));
+    } else {
+      return {
+        'success': false,
+        'message': 'Ошибка сервера: ${response.statusCode}'
+      };
+    }
   }
 
   // Auth endpoints
@@ -147,10 +158,8 @@ class ApiHelper {
   // Food endpoints
   static Future<Map<String, dynamic>> analyzeFood(File imageFile) async {
     try {
-      // Читаем файл
       final bytes = await imageFile.readAsBytes();
 
-      // ✅ СЖИМАЕМ ИЗОБРАЖЕНИЕ НА СТОРОНЕ КЛИЕНТА!
       final image = img.decodeImage(bytes);
 
       if (image == null) {
@@ -160,7 +169,6 @@ class ApiHelper {
         };
       }
 
-      // Определяем целевой размер (максимум 1024px по большей стороне)
       int targetWidth = image.width;
       int targetHeight = image.height;
       const maxSize = 1024;
@@ -175,7 +183,6 @@ class ApiHelper {
         }
       }
 
-      // Изменяем размер и сжимаем с качеством 75%
       final resized = img.copyResize(
         image,
         width: targetWidth,
@@ -185,10 +192,8 @@ class ApiHelper {
 
       final compressed = img.encodeJpg(resized, quality: 75);
 
-      // Конвертируем в base64
       final base64Image = 'data:image/jpeg;base64,${base64Encode(compressed)}';
 
-      // Используем новый endpoint с Gemini Vision
       return await analyzeFoodImage(base64Image);
     } catch (e) {
       return {'success': false, 'message': 'Ошибка загрузки изображения'};
@@ -229,7 +234,6 @@ class ApiHelper {
     }
   }
 
-  // Получить статистику за неделю для графика
   static Future<Map<String, dynamic>> getWeeklyProgress() async {
     try {
       final response = await http.get(
@@ -243,7 +247,6 @@ class ApiHelper {
     }
   }
 
-  // Получить активные дни месяца
   static Future<Map<String, dynamic>> getMonthlyActiveDays(
       {required int year, required int month}) async {
     try {
@@ -265,7 +268,6 @@ class ApiHelper {
     }
   }
 
-  // Обновить блюдо
   static Future<Map<String, dynamic>> updateFood(
       String foodId, Map<String, dynamic> data) async {
     try {
@@ -275,13 +277,16 @@ class ApiHelper {
         body: json.encode(data),
       );
 
-      return _handleResponse(response);
+      final result = _handleResponse(response);
+      if (result['success'] == true) {
+        WidgetRefreshService.refreshWidgets();
+      }
+      return result;
     } catch (e) {
       return {'success': false, 'message': 'Ошибка подключения к серверу'};
     }
   }
 
-  // Обновить блюдо с фото и новым названием через AI
   static Future<Map<String, dynamic>> updateFoodWithImage(
       String foodId, String newName, String imageBase64) async {
     try {
@@ -294,13 +299,16 @@ class ApiHelper {
         }),
       );
 
-      return _handleResponse(response);
+      final result = _handleResponse(response);
+      if (result['success'] == true) {
+        WidgetRefreshService.refreshWidgets();
+      }
+      return result;
     } catch (e) {
       return {'success': false, 'message': 'Ошибка подключения к серверу'};
     }
   }
 
-  // Удалить блюдо
   static Future<Map<String, dynamic>> deleteFood(String foodId) async {
     try {
       final response = await http.delete(
@@ -308,13 +316,16 @@ class ApiHelper {
         headers: await _getHeaders(),
       );
 
-      return _handleResponse(response);
+      final result = _handleResponse(response);
+      if (result['success'] == true) {
+        WidgetRefreshService.refreshWidgets();
+      }
+      return result;
     } catch (e) {
       return {'success': false, 'message': 'Ошибка подключения к серверу'};
     }
   }
 
-  // Добавить блюдо в избранное
   static Future<Map<String, dynamic>> addToFavorites(String foodId) async {
     try {
       final response = await http.post(
@@ -328,7 +339,6 @@ class ApiHelper {
     }
   }
 
-  // Получить избранные блюда
   static Future<Map<String, dynamic>> getFavoriteFoods() async {
     try {
       final response = await http.get(
@@ -342,7 +352,6 @@ class ApiHelper {
     }
   }
 
-  // Удалить из избранного
   static Future<Map<String, dynamic>> removeFavoriteFood(
       String favoriteId) async {
     try {
@@ -357,7 +366,6 @@ class ApiHelper {
     }
   }
 
-  // Добавить избранное блюдо в дневник
   static Future<Map<String, dynamic>> addFavoriteToDiary(
       String favoriteId) async {
     try {
@@ -368,13 +376,16 @@ class ApiHelper {
         body: json.encode({'localHour': localHour}),
       );
 
-      return _handleResponse(response);
+      final result = _handleResponse(response);
+      if (result['success'] == true) {
+        WidgetRefreshService.refreshWidgets();
+      }
+      return result;
     } catch (e) {
       return {'success': false, 'message': 'Ошибка подключения к серверу'};
     }
   }
 
-  // Анализ описания блюда через AI (создаёт новое блюдо)
   static Future<Map<String, dynamic>> analyzeFoodDescription(
       String description) async {
     try {
@@ -388,13 +399,16 @@ class ApiHelper {
         }),
       );
 
-      return _handleResponse(response);
+      final result = _handleResponse(response);
+      if (result['success'] == true) {
+        WidgetRefreshService.refreshWidgets();
+      }
+      return result;
     } catch (e) {
       return {'success': false, 'message': 'Ошибка подключения к серверу'};
     }
   }
 
-  // Только анализ описания (НЕ создаёт блюдо)
   static Future<Map<String, dynamic>> analyzeFoodDescriptionOnly(
       String description) async {
     try {

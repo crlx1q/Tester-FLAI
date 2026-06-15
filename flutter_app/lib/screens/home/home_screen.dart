@@ -1629,6 +1629,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: _buildMacroCard(
+                    icon: Icons.fitness_center,
                     color: const Color(0xFFEF5350),
                     label: 'Белки',
                     consumed: _summary!.consumedMacros.protein,
@@ -1639,21 +1640,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _buildMacroCard(
-                    color: const Color(0xFFFFA726),
-                    label: 'Углеводы',
-                    consumed: _summary!.consumedMacros.carbs,
-                    target: _summary!.targetMacros.carbs,
-                    isPrimary: carbsPrimary,
+                    icon: Icons.cookie,
+                    color: const Color(0xFFFFCA28),
+                    label: 'Жиры',
+                    consumed: _summary!.consumedMacros.fat,
+                    target: _summary!.targetMacros.fat,
+                    isPrimary: fatPrimary,
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: _buildMacroCard(
-                    color: const Color(0xFF42A5F5),
-                    label: 'Жиры',
-                    consumed: _summary!.consumedMacros.fat,
-                    target: _summary!.targetMacros.fat,
-                    isPrimary: fatPrimary,
+                    icon: Icons.bakery_dining,
+                    color: const Color(0xFF66BB6A),
+                    label: 'Углеводы',
+                    consumed: _summary!.consumedMacros.carbs,
+                    target: _summary!.targetMacros.carbs,
+                    isPrimary: carbsPrimary,
                   ),
                 ),
               ],
@@ -1665,6 +1668,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMacroCard({
+    required IconData icon,
     required Color color,
     required String label,
     required double consumed,
@@ -1679,16 +1683,10 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Row(
           children: [
-            Container(
-              width: isPrimary ? 10 : 8,
-              height: isPrimary ? 10 : 8,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                boxShadow: isPrimary
-                    ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 4, spreadRadius: 1)]
-                    : null,
-              ),
+            Icon(
+              icon,
+              size: isPrimary ? 16 : 14,
+              color: color,
             ),
             const SizedBox(width: 6),
             Expanded(
@@ -2231,28 +2229,28 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Expanded(
                         child: _buildDetailMacro(
-                          Icons.grain,
-                          'Углеводы',
-                          food.macros.carbs,
-                          Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildDetailMacro(
-                          Icons.fastfood,
+                          Icons.fitness_center,
                           'Белки',
                           food.macros.protein,
-                          Colors.red,
+                          const Color(0xFFEF5350),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildDetailMacro(
-                          Icons.opacity,
+                          Icons.cookie,
                           'Жиры',
                           food.macros.fat,
-                          Colors.blue,
+                          const Color(0xFFFFCA28),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildDetailMacro(
+                          Icons.bakery_dining,
+                          'Углеводы',
+                          food.macros.carbs,
+                          const Color(0xFF66BB6A),
                         ),
                       ),
                     ],

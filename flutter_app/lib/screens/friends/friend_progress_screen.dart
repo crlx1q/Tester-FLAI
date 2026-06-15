@@ -259,25 +259,32 @@ class _FriendProgressScreenState extends State<FriendProgressScreen> {
             style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white : Colors.black87),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(child: _buildMacroItem('Белки', (macros['protein'] ?? 0).toDouble(), (targetMacros['protein'] ?? 0).toDouble(), const Color(0xFFEF5350), isDark)),
-              const SizedBox(width: 10),
-              Expanded(child: _buildMacroItem('Углеводы', (macros['carbs'] ?? 0).toDouble(), (targetMacros['carbs'] ?? 0).toDouble(), const Color(0xFFFFA726), isDark)),
-              const SizedBox(width: 10),
-              Expanded(child: _buildMacroItem('Жиры', (macros['fat'] ?? 0).toDouble(), (targetMacros['fat'] ?? 0).toDouble(), const Color(0xFF42A5F5), isDark)),
-            ],
-          ),
+            Row(
+              children: [
+                Expanded(child: _buildMacroItem('Белки', (macros['protein'] ?? 0).toDouble(), (targetMacros['protein'] ?? 0).toDouble(), const Color(0xFFEF5350), Icons.fitness_center, isDark)),
+                const SizedBox(width: 10),
+                Expanded(child: _buildMacroItem('Жиры', (macros['fat'] ?? 0).toDouble(), (targetMacros['fat'] ?? 0).toDouble(), const Color(0xFFFFCA28), Icons.cookie, isDark)),
+                const SizedBox(width: 10),
+                Expanded(child: _buildMacroItem('Углеводы', (macros['carbs'] ?? 0).toDouble(), (targetMacros['carbs'] ?? 0).toDouble(), const Color(0xFF66BB6A), Icons.bakery_dining, isDark)),
+              ],
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildMacroItem(String label, double consumed, double target, Color color, bool isDark) {
+  Widget _buildMacroItem(String label, double consumed, double target, Color color, IconData icon, bool isDark) {
     final progress = target > 0 ? (consumed / target).clamp(0.0, 1.0) : 0.0;
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white54 : Colors.black45)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? Colors.white54 : Colors.black45)),
+          ],
+        ),
         const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),

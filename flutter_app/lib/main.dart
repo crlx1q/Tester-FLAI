@@ -23,9 +23,12 @@ void main() async {
   // Инициализация локализации для дат
   await initializeDateFormatting('ru', null);
   
-  // Firebase
-  await Firebase.initializeApp();
-  await FirebaseMessagingService.initialize();
+  // Firebase — не блокируем запуск если инициализация не удалась
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase init error: $e');
+  }
   
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,

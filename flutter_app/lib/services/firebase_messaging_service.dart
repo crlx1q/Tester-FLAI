@@ -4,8 +4,7 @@ import '../utils/api_helper.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Background messages are handled automatically by FCM on Android
-  // No extra work needed — the notification is shown by the system
+  // Background messages with notification payload are shown automatically by Android
 }
 
 class FirebaseMessagingService {
@@ -33,12 +32,6 @@ class FirebaseMessagingService {
     // Listen for token refresh
     _messaging.onTokenRefresh.listen((newToken) {
       _sendTokenToServer(newToken);
-    });
-
-    // Handle foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      // Foreground notifications are shown automatically on Android
-      // if the message contains a notification payload
     });
   }
 

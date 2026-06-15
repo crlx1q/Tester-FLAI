@@ -1,10 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:image_picker/image_picker.dart';
 import '../providers/user_provider.dart';
 import '../providers/limits_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/update_provider.dart';
+import '../services/widget_actions_service.dart';
+import '../services/firebase_messaging_service.dart';
 import '../utils/api_helper.dart';
 import 'home/home_screen.dart';
 import 'chat/chat_screen.dart';
@@ -31,6 +35,74 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _checkOnboarding();
     _loadPendingRequestCount();
+    _initWidgetActions();
+    _initFCM();
+  }
+
+  Future<void> _initFCM() async {
+    try {
+      await FirebaseMessagingService.initialize();
+    } catch (e) {
+      debugPrint('FCM init error: $e');
+    }
+  }
+
+  void _initWidgetActions() {
+    try {
+      WidgetActionsService.initialize(onAction: (action) {
+        if (!mounted) return;
+        
+        switch (action) {
+          case 'camera':
+            setState(() => _currentIndex = 0);
+            Future.delayed(const Duration(milliseconds: 300), () {
+              _openCameraFromWidget();
+            });
+            break;
+          default:
+            setState(() => _currentIndex = 0);
+        }
+      });
+    } catch (e) {
+      debugPrint('Widget actions init error: $e');
+    }
+  }
+
+  Future<void> _openCameraFromWidget() async {
+    if (!mounted) return;
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.camera,
+      preferredCameraDevice: CameraDevice.rear,
+      imageQuality: 80,
+    );
+    if (image != null && mounted) {
+      // Analyze the photo
+      final result = await ApiHelper.analyzeFood(File(image.path));
+      if (mounted) {
+        if (result['success']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Блюдо добавлено!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? 'Ошибка анализа'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetActionsService.dispose();
+    super.dispose();
   }
 
   Future<void> _loadPendingRequestCount() async {

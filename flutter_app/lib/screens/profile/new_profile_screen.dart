@@ -1352,6 +1352,8 @@ class _NewProfileScreenState extends State<NewProfileScreen> {
               _buildLimitRow('Сообщения', limits.messages.remaining, limits.messages.max, Icons.chat_bubble, isDark),
               const SizedBox(height: 8),
               _buildLimitRow('Рецепты', limits.recipes.remaining, limits.recipes.max, Icons.restaurant_menu, isDark),
+              const SizedBox(height: 8),
+              _buildLimitRow('Советы AI', limits.mealAdvice.remaining, limits.mealAdvice.max, Icons.auto_awesome, isDark),
               const SizedBox(height: 16),
             ],
             Container(

@@ -42,6 +42,51 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+            
+        <!-- Home Screen Widget: Quick Actions -->
+        <receiver
+            android:name=".QuickActionsWidget"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.example.foodlens_ai.ACTION_ADD_WATER"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_actions_info"/>
+        </receiver>
+        
+        <!-- Home Screen Widget: Mini Stats (2x2) -->
+        <receiver
+            android:name=".DailyStatsSmallWidget"
+            android:exported="true"
+            android:label="@string/widget_small_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.example.foodlens_ai.ACTION_SMALL_ADD_WATER"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_daily_stats_small_info"/>
+        </receiver>
+        
+        <!-- Home Screen Widget: Stats Bar (4x1) -->
+        <receiver
+            android:name=".DailyStatsBarWidget"
+            android:exported="true"
+            android:label="@string/widget_bar_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_daily_stats_bar_info"/>
+        </receiver>
         
         <!-- FileProvider для установки APK на Android 7.0+ -->
         <provider

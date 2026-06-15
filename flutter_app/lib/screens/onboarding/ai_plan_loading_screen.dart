@@ -409,7 +409,7 @@ class AIPlanResultScreen extends StatelessWidget {
                           const SizedBox(height: 12),
 
                           _buildPlanItem(
-                            icon: Icons.water_drop,
+                            icon: Icons.cookie,
                             label: 'Жиры',
                             value: '${aiPlan['macros']['fat']} г',
                           ),
@@ -417,7 +417,7 @@ class AIPlanResultScreen extends StatelessWidget {
                           const SizedBox(height: 12),
 
                           _buildPlanItem(
-                            icon: Icons.grain,
+                            icon: Icons.bakery_dining,
                             label: 'Углеводы',
                             value: '${aiPlan['macros']['carbs']} г',
                           ),
@@ -426,7 +426,7 @@ class AIPlanResultScreen extends StatelessWidget {
 
                           // Вода
                           _buildPlanItem(
-                            icon: Icons.local_drink,
+                            icon: Icons.water_drop,
                             label: 'Норма воды',
                             value: '${aiPlan['waterGlasses']} стаканов (${aiPlan['waterGlasses'] * 100} мл)',
                           ),

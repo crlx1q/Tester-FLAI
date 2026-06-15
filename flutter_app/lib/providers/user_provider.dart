@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../utils/api_helper.dart';
 import '../models/user_model.dart';
 
@@ -20,6 +21,8 @@ class UserProvider extends ChangeNotifier {
     
     if (result['success']) {
       _user = UserModel.fromJson(result['user']);
+      // Save water target to SharedPreferences for Android widget access
+      _saveWidgetData();
     }
     
     _isLoading = false;
@@ -63,5 +66,16 @@ class UserProvider extends ChangeNotifier {
   void clear() {
     _user = null;
     notifyListeners();
+  }
+
+  Future<void> _saveWidgetData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_user?.waterTarget != null) {
+        await prefs.setInt('water_target', _user!.waterTarget!);
+      }
+    } catch (e) {
+      // Non-critical, ignore errors
+    }
   }
 }

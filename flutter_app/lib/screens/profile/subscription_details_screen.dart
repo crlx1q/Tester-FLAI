@@ -166,6 +166,13 @@ class _SubscriptionDetailsScreenState extends State<SubscriptionDetailsScreen> {
                     value: 'Неограниченно',
                     isDark: isDark,
                   ),
+                  const SizedBox(height: 16),
+                  _buildUsageRow(
+                    icon: Icons.auto_awesome,
+                    label: 'Советы AI',
+                    value: '${limits.mealAdvice.current}/${limits.mealAdvice.max}',
+                    isDark: isDark,
+                  ),
                 ],
               ),
 

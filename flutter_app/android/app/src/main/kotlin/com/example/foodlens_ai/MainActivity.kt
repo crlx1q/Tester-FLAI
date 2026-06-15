@@ -31,6 +31,49 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.foodlens.widget").setMethodCallHandler { call, result ->
+            if (call.method == "refreshWidgets") {
+                refreshAllWidgets()
+                result.success(null)
+            } else {
+                result.notImplemented()
+            }
+        }
+    }
+
+    private fun refreshAllWidgets() {
+        val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(this)
+        
+        // Small Widget
+        val smallIds = appWidgetManager.getAppWidgetIds(android.content.ComponentName(this, DailyStatsSmallWidget::class.java))
+        if (smallIds.isNotEmpty()) {
+            val intent = Intent(this, DailyStatsSmallWidget::class.java).apply {
+                action = android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, smallIds)
+            }
+            sendBroadcast(intent)
+        }
+
+        // Bar Widget
+        val barIds = appWidgetManager.getAppWidgetIds(android.content.ComponentName(this, DailyStatsBarWidget::class.java))
+        if (barIds.isNotEmpty()) {
+            val intent = Intent(this, DailyStatsBarWidget::class.java).apply {
+                action = android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, barIds)
+            }
+            sendBroadcast(intent)
+        }
+
+        // Quick Actions Widget
+        val quickIds = appWidgetManager.getAppWidgetIds(android.content.ComponentName(this, QuickActionsWidget::class.java))
+        if (quickIds.isNotEmpty()) {
+            val intent = Intent(this, QuickActionsWidget::class.java).apply {
+                action = android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, quickIds)
+            }
+            sendBroadcast(intent)
+        }
     }
 
     private fun startSpeechRecognition() {

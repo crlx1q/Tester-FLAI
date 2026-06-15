@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bar Widget 4x1: Calories / Protein / Fat / Carbs / Water — all in a row -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="2dp">
+
+    <LinearLayout
+        android:id="@+id/widget_bar_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:orientation="horizontal"
+        android:padding="2dp"
+        android:gravity="center_vertical"
+        android:background="@drawable/widget_bg_dark">
+
+    <!-- App icon -->
+    <FrameLayout
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/bg_logo_rounded"
+        android:clipToOutline="true">
+        <ImageView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@mipmap/launcher_icon" />
+    </FrameLayout>
+
+    <!-- Calories -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/widget_stat_card_bg"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:layout_marginEnd="3dp">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_widget_fire2" />
+
+        <TextView
+            android:id="@+id/tv_bar_calories"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="ккал"
+            android:textSize="10sp"
+            android:textColor="@color/widget_text_secondary" />
+    </LinearLayout>
+
+    <!-- Protein -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/widget_stat_card_bg"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:layout_marginEnd="3dp">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_widget_protein2" />
+
+        <TextView
+            android:id="@+id/tv_bar_protein"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0г"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="белки"
+            android:textSize="10sp"
+            android:textColor="@color/widget_text_secondary" />
+    </LinearLayout>
+
+    <!-- Fat -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/widget_stat_card_bg"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:layout_marginEnd="3dp">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_widget_fat2" />
+
+        <TextView
+            android:id="@+id/tv_bar_fat"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0г"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="жиры"
+            android:textSize="10sp"
+            android:textColor="@color/widget_text_secondary" />
+    </LinearLayout>
+
+    <!-- Carbs -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/widget_stat_card_bg"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp"
+        android:layout_marginEnd="3dp">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_widget_carbs2" />
+
+        <TextView
+            android:id="@+id/tv_bar_carbs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0г"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_primary"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="углев"
+            android:textSize="10sp"
+            android:textColor="@color/widget_text_secondary" />
+    </LinearLayout>
+
+    <!-- Water -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="@drawable/widget_stat_card_bg"
+        android:paddingStart="2dp"
+        android:paddingEnd="2dp"
+        android:paddingTop="3dp"
+        android:paddingBottom="3dp">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_widget_water2" />
+
+        <TextView
+            android:id="@+id/tv_bar_water"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1500"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#4FC3F7"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="мл"
+            android:textSize="10sp"
+            android:textColor="@color/widget_text_secondary" />
+    </LinearLayout>
+
+    </LinearLayout>
+</FrameLayout>

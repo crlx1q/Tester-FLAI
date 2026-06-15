@@ -7,6 +7,7 @@ class UsageLimits {
   final UsageInfo photos;
   final UsageInfo messages;
   final UsageInfo recipes;
+  final UsageInfo mealAdvice;
   final String date;
 
   UsageLimits({
@@ -18,6 +19,7 @@ class UsageLimits {
     required this.photos,
     required this.messages,
     required this.recipes,
+    required this.mealAdvice,
     required this.date,
   });
 
@@ -35,6 +37,7 @@ class UsageLimits {
       photos: UsageInfo.fromJson(json['usage']['photos']),
       messages: UsageInfo.fromJson(json['usage']['messages']),
       recipes: UsageInfo.fromJson(json['usage']['recipes']),
+      mealAdvice: UsageInfo.fromJson(json['usage']['mealAdvice'] ?? {'current': 0, 'max': 5, 'remaining': 5}),
       date: json['usage']['date'],
     );
   }
